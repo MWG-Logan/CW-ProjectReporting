@@ -87,3 +87,93 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* Report styles */
+.report-container {
+    background: #fff;
+    border: 1px solid #e3e6eb;
+    border-radius: .5rem;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 .125rem .5rem rgba(0, 0, 0, .06);
+}
+
+.report-container h2 {
+    font-weight: 600;
+}
+
+.meta span {
+    display: inline-block;
+    margin-bottom: .25rem;
+}
+
+.stat {
+    background: #f8f9fa;
+    border: 1px solid #e3e6eb;
+    border-radius: .25rem;
+    padding: .5rem .6rem;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    height: 100%;
+}
+
+.stat .label {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #6c757d;
+}
+
+.stat .value {
+    font-weight: 600;
+}
+
+.markdown {
+    background: #fcfcfd;
+    border: 1px solid #e3e6eb;
+    border-radius: .25rem;
+    padding: .75rem .85rem;
+    font-size: .9rem;
+    line-height: 1.3rem;
+}
+
+.markdown h1, .markdown h2, .markdown h3, .markdown h4 {
+    margin-top: 1rem;
+    font-weight: 600;
+}
+
+.markdown p {
+    margin: .5rem 0;
+}
+
+.markdown ul {
+    padding-left: 1.15rem;
+    margin: .5rem 0;
+}
+
+.markdown li {
+    margin: .25rem 0;
+}
+
+.markdown strong {
+    font-weight: 600;
+}
+
+.badge {
+    font-size: .6rem;
+    letter-spacing: .05em;
+}
+
+.table-sm td, .table-sm th {
+    padding: .35rem .5rem;
+}
+
+@media (max-width: 768px) {
+  .report-container {
+    padding: 1rem;
+  }
+
+  .stat {
+    padding: .4rem .5rem;
+  }
+}
