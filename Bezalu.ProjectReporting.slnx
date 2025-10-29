@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Bezalu.ProjectReporting.API/Bezalu.ProjectReporting.API.csproj" />
+  <Project Path="Bezalu.ProjectReporting.Web/Bezalu.ProjectReporting.Web.csproj" />
+</Solution>

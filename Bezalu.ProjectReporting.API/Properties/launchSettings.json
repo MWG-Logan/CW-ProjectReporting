@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Bezalu.ProjectReporting.API": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7069",
+      "launchBrowser": false
+    }
+  }
+}
