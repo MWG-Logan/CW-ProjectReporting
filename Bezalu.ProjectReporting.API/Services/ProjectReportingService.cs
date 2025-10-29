@@ -11,30 +11,20 @@ public interface IProjectReportingService
     Task<ProjectCompletionReportResponse> GenerateProjectCompletionReportAsync(int projectId, CancellationToken cancellationToken = default);
 }
 
-public class ProjectReportingService : IProjectReportingService
+public class ProjectReportingService(
+    IConnectWiseApiClient connectWiseClient,
+    IAzureOpenAIService aiService,
+    ILogger<ProjectReportingService> logger)
+    : IProjectReportingService
 {
-    private readonly IConnectWiseApiClient _connectWiseClient;
-    private readonly IAzureOpenAIService _aiService;
-    private readonly ILogger<ProjectReportingService> _logger;
-
-    public ProjectReportingService(
-        IConnectWiseApiClient connectWiseClient,
-        IAzureOpenAIService aiService,
-        ILogger<ProjectReportingService> logger)
-    {
-        _connectWiseClient = connectWiseClient;
-        _aiService = aiService;
-        _logger = logger;
-    }
-
     public async Task<ProjectCompletionReportResponse> GenerateProjectCompletionReportAsync(
         int projectId, 
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Generating project completion report for project {ProjectId}", projectId);
+        logger.LogInformation("Generating project completion report for project {ProjectId}", projectId);
 
         // Fetch project details
-        var project = await _connectWiseClient.GetAsync<CWProject>(
+        var project = await connectWiseClient.GetAsync<CWProject>(
             $"project/projects/{projectId}", 
             cancellationToken);
 
@@ -44,12 +34,12 @@ public class ProjectReportingService : IProjectReportingService
         }
 
         // Fetch project notes
-        var projectNotes = await _connectWiseClient.GetListAsync<CWProjectNote>(
+        var projectNotes = await connectWiseClient.GetListAsync<CWProjectNote>(
             $"project/projects/{projectId}/notes",
             cancellationToken) ?? new List<CWProjectNote>();
 
         // Fetch project tickets
-        var tickets = await _connectWiseClient.GetListAsync<CWTicket>(
+        var tickets = await connectWiseClient.GetListAsync<CWTicket>(
             $"project/tickets?conditions=project/id={projectId}",
             cancellationToken) ?? new List<CWTicket>();
 
@@ -59,7 +49,7 @@ public class ProjectReportingService : IProjectReportingService
         {
             if (ticket.Id.HasValue)
             {
-                var ticketNotes = await _connectWiseClient.GetListAsync<CWTicketNote>(
+                var ticketNotes = await connectWiseClient.GetListAsync<CWTicketNote>(
                     $"project/tickets/{ticket.Id.Value}/notes",
                     cancellationToken) ?? new List<CWTicketNote>();
                 allTicketNotes[ticket.Id.Value] = ticketNotes;
@@ -67,7 +57,7 @@ public class ProjectReportingService : IProjectReportingService
         }
 
         // Fetch project phases
-        var phases = await _connectWiseClient.GetListAsync<CWPhase>(
+        var phases = await connectWiseClient.GetListAsync<CWPhase>(
             $"project/projects/{projectId}/phases",
             cancellationToken) ?? new List<CWPhase>();
 
@@ -76,13 +66,13 @@ public class ProjectReportingService : IProjectReportingService
 
         // Generate AI summary
         var projectDataForAI = PrepareDataForAI(report);
-        report.AiGeneratedSummary = await _aiService.GenerateProjectSummaryAsync(
+        report.AiGeneratedSummary = await aiService.GenerateProjectSummaryAsync(
             projectDataForAI, 
             cancellationToken);
 
         report.GeneratedAt = DateTime.UtcNow;
 
-        _logger.LogInformation("Successfully generated project completion report for project {ProjectId}", projectId);
+        logger.LogInformation("Successfully generated project completion report for project {ProjectId}", projectId);
         return report;
     }
 
@@ -155,7 +145,7 @@ public class ProjectReportingService : IProjectReportingService
             ActualEnd = phase.ActualEnd,
             EstimatedHours = phase.EstimatedHours ?? 0,
             ActualHours = phase.ActualHours ?? 0,
-            Notes = phase.Notes?.OrderBy(n => n.DateCreated).Select(n => n.Text ?? "").ToList() ?? new List<string>()
+            Notes = new List<string>() // Notes removed from CWPhase model; keep empty list to avoid null handling downstream
         }).ToList();
 
         // Build ticket summaries
@@ -209,10 +199,6 @@ public class ProjectReportingService : IProjectReportingService
         {
             sb.AppendLine($"- {phase.PhaseName}: {phase.Status}");
             sb.AppendLine($"  Hours: {phase.EstimatedHours} est / {phase.ActualHours} actual");
-            if (phase.Notes?.Any() == true)
-            {
-                sb.AppendLine($"  Notes: {phase.Notes.Count} notes recorded");
-            }
         }
         sb.AppendLine();
 

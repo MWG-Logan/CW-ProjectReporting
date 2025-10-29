@@ -1,5 +1,5 @@
 using System.Text;
-using System.Text.Json;
+using Azure.AI.OpenAI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -10,18 +10,10 @@ public interface IAzureOpenAIService
     Task<string> GenerateProjectSummaryAsync(string projectData, CancellationToken cancellationToken = default);
 }
 
-public class AzureOpenAIService : IAzureOpenAIService
+public class AzureOpenAIService(OpenAIClient openAiClient, ILogger<AzureOpenAIService> logger, IConfiguration configuration)
+    : IAzureOpenAIService
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<AzureOpenAIService> _logger;
-    private readonly string _deploymentName;
-
-    public AzureOpenAIService(HttpClient httpClient, ILogger<AzureOpenAIService> logger, IConfiguration configuration)
-    {
-        _httpClient = httpClient;
-        _logger = logger;
-        _deploymentName = configuration["AzureOpenAI:DeploymentName"] ?? "gpt-4";
-    }
+    private readonly string _deploymentName = configuration["AzureOpenAI:DeploymentName"] ?? "gpt-4";
 
     public async Task<string> GenerateProjectSummaryAsync(string projectData, CancellationToken cancellationToken = default)
     {
@@ -37,43 +29,26 @@ public class AzureOpenAIService : IAzureOpenAIService
 
 Format your response in clear, structured sections suitable for a professional project report.";
 
-            var requestBody = new
+            var messages = new List<ChatRequestMessage>
             {
-                messages = new[]
-                {
-                    new { role = "system", content = systemPrompt },
-                    new { role = "user", content = $"Analyze this project data and provide a comprehensive completion report:\n\n{projectData}" }
-                },
-                max_tokens = 2000,
-                temperature = 0.7
+                new ChatRequestSystemMessage(systemPrompt),
+                new ChatRequestUserMessage($"Analyze this project data and provide a comprehensive completion report:\n\n{projectData}")
             };
 
-            var content = new StringContent(
-                JsonSerializer.Serialize(requestBody),
-                Encoding.UTF8,
-                "application/json");
+            var options = new ChatCompletionsOptions(_deploymentName, messages)
+            {
+                Temperature = 0.7f,
+                MaxTokens = 2000
+            };
+            foreach (var m in messages) options.Messages.Add(m);
 
-            var response = await _httpClient.PostAsync(
-                $"openai/deployments/{_deploymentName}/chat/completions?api-version=2024-02-15-preview",
-                content,
-                cancellationToken);
-
-            response.EnsureSuccessStatusCode();
-
-            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            var jsonDoc = JsonDocument.Parse(responseContent);
-            
-            var message = jsonDoc.RootElement
-                .GetProperty("choices")[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString();
-
-            return message ?? "Unable to generate summary.";
+            var response = await openAiClient.GetChatCompletionsAsync(options, cancellationToken);
+            var content = response.Value.Choices.FirstOrDefault()?.Message.Content;
+            return string.IsNullOrWhiteSpace(content) ? "Unable to generate summary." : content.Trim();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating project summary with Azure OpenAI");
+            logger.LogError(ex, "Error generating project summary with Azure OpenAI");
             return "Error generating AI summary. Manual review required.";
         }
     }

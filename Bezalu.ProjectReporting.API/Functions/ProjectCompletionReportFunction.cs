@@ -7,26 +7,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Bezalu.ProjectReporting.API.Functions;
 
-public class ProjectCompletionReportFunction
+public class ProjectCompletionReportFunction(
+    ILogger<ProjectCompletionReportFunction> logger,
+    IProjectReportingService reportingService)
 {
-    private readonly ILogger<ProjectCompletionReportFunction> _logger;
-    private readonly IProjectReportingService _reportingService;
-
-    public ProjectCompletionReportFunction(
-        ILogger<ProjectCompletionReportFunction> logger,
-        IProjectReportingService reportingService)
-    {
-        _logger = logger;
-        _reportingService = reportingService;
-    }
-
     [Function("GenerateProjectCompletionReport")]
     public async Task<IActionResult> Run(
         [HttpTrigger(AuthorizationLevel.Function, "post", Route = "reports/project-completion")] 
         HttpRequest req,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Processing project completion report request");
+        logger.LogInformation("Processing project completion report request");
 
         try
         {
@@ -37,7 +28,7 @@ public class ProjectCompletionReportFunction
                 return new BadRequestObjectResult(new { error = "Invalid project ID" });
             }
 
-            var report = await _reportingService.GenerateProjectCompletionReportAsync(
+            var report = await reportingService.GenerateProjectCompletionReportAsync(
                 request.ProjectId, 
                 cancellationToken);
 
@@ -45,12 +36,12 @@ public class ProjectCompletionReportFunction
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Project not found");
+            logger.LogWarning(ex, "Project not found");
             return new NotFoundObjectResult(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating project completion report");
+            logger.LogError(ex, "Error generating project completion report");
             return new ObjectResult(new { error = "An error occurred while generating the report" })
             {
                 StatusCode = StatusCodes.Status500InternalServerError

@@ -54,7 +54,6 @@ public class CWPhase
     public DateTime? ActualEnd { get; set; }
     public decimal? EstimatedHours { get; set; }
     public decimal? ActualHours { get; set; }
-    public List<CWPhaseNote>? Notes { get; set; }
 }
 
 public class CWPhaseNote
