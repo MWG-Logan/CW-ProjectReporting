@@ -23,7 +23,6 @@ public class ProjectReportingService(
     {
         logger.LogInformation("Generating project completion report for project {ProjectId}", projectId);
 
-        // Fetch project details
         var project = await connectWiseClient.GetAsync<CWProject>(
             $"project/projects/{projectId}", 
             cancellationToken);
@@ -33,17 +32,14 @@ public class ProjectReportingService(
             throw new InvalidOperationException($"Project {projectId} not found");
         }
 
-        // Fetch project notes
         var projectNotes = await connectWiseClient.GetListAsync<CWProjectNote>(
             $"project/projects/{projectId}/notes",
             cancellationToken) ?? new List<CWProjectNote>();
 
-        // Fetch project tickets
         var tickets = await connectWiseClient.GetListAsync<CWTicket>(
             $"project/tickets?conditions=project/id={projectId}",
             cancellationToken) ?? new List<CWTicket>();
 
-        // Fetch ticket notes for all tickets
         var allTicketNotes = new Dictionary<int, List<CWTicketNote>>();
         foreach (var ticket in tickets)
         {
@@ -56,16 +52,13 @@ public class ProjectReportingService(
             }
         }
 
-        // Fetch project phases
         var phases = await connectWiseClient.GetListAsync<CWPhase>(
             $"project/projects/{projectId}/phases",
             cancellationToken) ?? new List<CWPhase>();
 
-        // Build the report
         var report = BuildReport(project, projectNotes, tickets, allTicketNotes, phases);
 
-        // Generate AI summary
-        var projectDataForAI = PrepareDataForAI(report);
+        var projectDataForAI = PrepareDataForAI(report, projectNotes, allTicketNotes);
         report.AiGeneratedSummary = await aiService.GenerateProjectSummaryAsync(
             projectDataForAI, 
             cancellationToken);
@@ -99,7 +92,6 @@ public class ProjectReportingService(
             }
         };
 
-        // Calculate timeline analysis
         if (project.EstimatedStart.HasValue && project.EstimatedEnd.HasValue &&
             project.ActualStart.HasValue)
         {
@@ -118,7 +110,6 @@ public class ProjectReportingService(
             };
         }
 
-        // Calculate budget analysis
         var estimatedHours = project.EstimatedHours ?? 0;
         var actualHours = project.ActualHours ?? 0;
         var hoursVariance = actualHours - estimatedHours;
@@ -128,14 +119,13 @@ public class ProjectReportingService(
             EstimatedHours = estimatedHours,
             ActualHours = actualHours,
             VarianceHours = hoursVariance,
-            EstimatedCost = 0, // Would need rate information
+            EstimatedCost = 0,
             ActualCost = 0,
             VarianceCost = 0,
             BudgetAdherence = hoursVariance <= 0 ? "Under Budget" : hoursVariance <= estimatedHours * 0.1m ? "Slightly Over" : "Over Budget",
             CostPerformance = estimatedHours > 0 ? $"{(double)(actualHours / estimatedHours) * 100:F1}%" : "N/A"
         };
 
-        // Build phase details
         report.Phases = phases.Select(phase => new PhaseDetail
         {
             PhaseId = phase.Id ?? 0,
@@ -145,10 +135,9 @@ public class ProjectReportingService(
             ActualEnd = phase.ActualEnd,
             EstimatedHours = phase.EstimatedHours ?? 0,
             ActualHours = phase.ActualHours ?? 0,
-            Notes = new List<string>() // Notes removed from CWPhase model; keep empty list to avoid null handling downstream
+            Notes = new List<string>()
         }).ToList();
 
-        // Build ticket summaries
         report.Tickets = tickets.Select(ticket => new TicketSummary
         {
             TicketId = ticket.Id ?? 0,
@@ -169,7 +158,14 @@ public class ProjectReportingService(
         return report;
     }
 
-    private string PrepareDataForAI(ProjectCompletionReportResponse report)
+    private static string Sanitize(string? text, int maxLen = 500)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var cleaned = text.Replace("\r", " ").Replace("\n", " ").Trim();
+        return cleaned.Length <= maxLen ? cleaned : cleaned.Substring(0, maxLen) + "…";
+    }
+
+    private string PrepareDataForAI(ProjectCompletionReportResponse report, List<CWProjectNote> projectNotes, Dictionary<int, List<CWTicketNote>> ticketNotes)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"PROJECT: {report.ProjectName}");
@@ -194,23 +190,39 @@ public class ProjectReportingService(
         }
         sb.AppendLine();
 
-        sb.AppendLine($"PHASES ({report.Phases?.Count ?? 0}):");
-        foreach (var phase in report.Phases ?? new List<PhaseDetail>())
+        // Project notes content
+        sb.AppendLine($"PROJECT NOTES ({projectNotes.Count}):");
+        foreach (var note in projectNotes.OrderBy(n => n.DateCreated)) // cap to 50
         {
-            sb.AppendLine($"- {phase.PhaseName}: {phase.Status}");
-            sb.AppendLine($"  Hours: {phase.EstimatedHours} est / {phase.ActualHours} actual");
+            sb.AppendLine($"- [{note.DateCreated:yyyy-MM-dd}] {Sanitize(note.Text)}");
         }
         sb.AppendLine();
 
+        // Phase summaries
+        sb.AppendLine($"PHASES ({report.Phases?.Count ?? 0}):");
+        foreach (var phase in report.Phases ?? new List<PhaseDetail>())
+        {
+            sb.AppendLine($"- {phase.PhaseName}: {phase.Status}; Hours est/actual {phase.EstimatedHours}/{phase.ActualHours}");
+        }
+        sb.AppendLine();
+
+        // Ticket + notes content (truncate per ticket)
         sb.AppendLine($"TICKETS ({report.Tickets?.Count ?? 0}):");
         foreach (var ticket in report.Tickets ?? new List<TicketSummary>())
         {
-            sb.AppendLine($"- #{ticket.TicketNumber}: {ticket.Summary}");
-            sb.AppendLine($"  Status: {ticket.Status}, Type: {ticket.Type}/{ticket.SubType}");
-            sb.AppendLine($"  Hours: {ticket.EstimatedHours} est / {ticket.ActualHours} actual");
-            if (ticket.Notes?.Any() == true)
+            sb.AppendLine($"- Ticket #{ticket.TicketNumber} {ticket.Summary} (Status: {ticket.Status}, Type: {ticket.Type}/{ticket.SubType}, Hours est/actual {ticket.EstimatedHours}/{ticket.ActualHours})");
+            if (ticketNotes.TryGetValue(ticket.TicketId, out var notes) && notes.Any())
             {
-                sb.AppendLine($"  Notes: {ticket.Notes.Count} notes recorded");
+                var limited = notes.OrderBy(n => n.DateCreated).ToList(); // cap to 20 per ticket
+                sb.AppendLine("  Notes:");
+                foreach (var n in limited)
+                {
+                    sb.AppendLine($"    • [{n.DateCreated:yyyy-MM-dd}] {Sanitize(n.Text)}");
+                }
+                if (notes.Count > limited.Count)
+                {
+                    sb.AppendLine($"    • … ({notes.Count - limited.Count} more notes truncated)");
+                }
             }
         }
 
