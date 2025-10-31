@@ -1,5 +1,3 @@
-using System.Linq;
-using Azure.AI.OpenAI;
 using Microsoft.Extensions.Logging;
 using OpenAI.Chat;
 

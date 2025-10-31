@@ -1,8 +1,7 @@
-using Bezalu.ProjectReporting.API.DTOs;
+using Bezalu.ProjectReporting.Shared.DTOs;
 using Bezalu.ProjectReporting.API.Models;
 using Microsoft.Extensions.Logging;
 using System.Text;
-using System.Text.Json;
 
 namespace Bezalu.ProjectReporting.API.Services;
 

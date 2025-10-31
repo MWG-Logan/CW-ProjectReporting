@@ -7,9 +7,8 @@
     <title>Bezalu.ProjectReporting.Web</title>
     <base href="/" />
     <link rel="preload" id="webassembly" />
+    <link href="_content/Microsoft.FluentUI.AspNetCore.Components/css/reboot.css" rel="stylesheet" />
     <link rel="stylesheet" href="css/app.css" />
-    <!-- If you add any scoped CSS files, uncomment the following to load them
-    <link href="Bezalu.ProjectReporting.Web.styles.css" rel="stylesheet" /> -->
     <link href="manifest.webmanifest" rel="manifest" />
     <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
@@ -30,10 +29,8 @@
         <a href="." class="reload">Reload</a>
         <span class="dismiss">🗙</span>
     </div>
-    <!-- Use standard Blazor WASM loader script without fingerprint placeholder so SWA emulator can resolve it -->
     <script src="_framework/blazor.webassembly.js"></script>
-    <script src="js/reportExport.js"></script>
-    <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
+    <script>navigator.serviceWorker.register('service-worker.js');</script>
 </body>
 
 </html>
