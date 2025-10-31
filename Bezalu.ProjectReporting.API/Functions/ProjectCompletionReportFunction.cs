@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using QuestPDF;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
-// unified DTO source
 
 namespace Bezalu.ProjectReporting.API.Functions;
 
@@ -50,22 +50,22 @@ public class ProjectCompletionReportFunction(
         }
     }
 
+    // Changed to POST and accepts full report body to avoid regeneration
     [Function("GenerateProjectCompletionReportPdf")]
     public async Task<IActionResult> RunPdf(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "reports/project-completion/pdf/{projectId:int}")]
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "reports/project-completion/pdf")]
         HttpRequest req,
-        int projectId,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation("Processing project completion report PDF request for {ProjectId}", projectId);
-
-        if (projectId <= 0)
-            return new BadRequestObjectResult(new { error = "Invalid project ID" });
+        logger.LogInformation("Processing project completion report PDF request (direct report body)");
 
         try
         {
-            QuestPDF.Settings.License = LicenseType.Community;
-            var report = await reportingService.GenerateProjectCompletionReportAsync(projectId, cancellationToken);
+            var report = await req.ReadFromJsonAsync<ProjectCompletionReportResponse>(cancellationToken);
+            if (report is not { ProjectId: > 0 })
+                return new BadRequestObjectResult(new { error = "Invalid report payload" });
+
+            Settings.License = LicenseType.Community;
 
             var document = Document.Create(container =>
             {
@@ -117,11 +117,6 @@ public class ProjectCompletionReportFunction(
             {
                 FileDownloadName = $"project-{report.ProjectId}-completion-report.pdf"
             };
-        }
-        catch (InvalidOperationException ex)
-        {
-            logger.LogWarning(ex, "Project not found for PDF generation");
-            return new NotFoundObjectResult(new { error = ex.Message });
         }
         catch (Exception ex)
         {

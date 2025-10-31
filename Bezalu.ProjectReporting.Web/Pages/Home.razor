@@ -1,6 +1,7 @@
 ﻿@page "/"
 @inject HttpClient Http
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 @using Markdig
 
 <PageTitle>Project Reporting</PageTitle>
@@ -123,7 +124,7 @@
         IsPdfLoading = true;
         try
         {
-            var httpResp = await Http.GetAsync($"api/reports/project-completion/pdf/{Report.ProjectId}");
+            var httpResp = await Http.PostAsJsonAsync("api/reports/project-completion/pdf", Report);
             if (!httpResp.IsSuccessStatusCode)
             {
                 ErrorMessage = $"PDF failed: {httpResp.StatusCode}";
@@ -132,8 +133,7 @@
 
             var bytes = await httpResp.Content.ReadAsByteArrayAsync();
             var base64 = Convert.ToBase64String(bytes);
-            // Navigate to data URI triggers browser download dialogue for PDF inline view; user can save.
-            Nav.NavigateTo($"data:application/pdf;base64,{base64}");
+            await JS.InvokeVoidAsync("saveFile", base64, $"project-{Report.ProjectId}-completion-report.pdf", "application/pdf");
         }
         catch (Exception ex)
         {
