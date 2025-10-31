@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="Bezalu.ProjectReporting.API/Bezalu.ProjectReporting.API.csproj" />
-  <Project Path="Bezalu.ProjectReporting.Web/Bezalu.ProjectReporting.Web.csproj" />
+  <Project Path="Bezalu.ProjectReporting.Shared/Bezalu.ProjectReporting.Shared.csproj" Id="91c2faae-4c48-4dd7-9ebc-6231e0667212" />
+  <Project Path="Bezalu.ProjectReporting.Web/Bezalu.ProjectReporting.Web.csproj" Id="608cfb88-501b-42d3-b460-4a5800ad7d3f" />
 </Solution>

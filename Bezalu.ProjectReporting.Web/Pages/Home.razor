@@ -1,188 +1,147 @@
 ﻿@page "/"
-@using Bezalu.ProjectReporting.Web.DTOs
 @inject HttpClient Http
+@inject NavigationManager Nav
+@inject IJSRuntime JS
 @using Markdig
 
-<PageTitle>Project Report</PageTitle>
+<PageTitle>Project Reporting</PageTitle>
 
-<h1 class="mb-3">Project Completion Report</h1>
+<FluentCard Style="padding:1rem; margin-bottom:1rem;">
+    <h2>Generate Project Completion Report</h2>
+    <FluentStack Orientation="Orientation.Horizontal" Gap="10">
+        <FluentNumberField @bind-Value="ProjectId" Placeholder="Project ID" Min="1"/>
+        <FluentButton Appearance="Appearance.Accent" OnClick="GenerateReport" Disabled="IsLoading || ProjectId <= 0">Generate Report</FluentButton>
+        <FluentButton Appearance="Appearance.Outline" OnClick="DownloadPdf" Disabled="IsLoading || Report is null || IsPdfLoading">@(IsPdfLoading ? "Generating PDF..." : "Download PDF")</FluentButton>
+        @if (IsLoading)
+        {
+            <FluentProgressRing/>
+        }
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <FluentMessageBar Intent="MessageIntent.Error">@ErrorMessage</FluentMessageBar>
+        }
+    </FluentStack>
+</FluentCard>
 
-<div class="card p-3 mb-3 shadow-sm">
-    <div class="row g-2 align-items-end">
-        <div class="col-auto">
-            <label for="projectId" class="form-label">Project ID</label>
-            <input id="projectId" type="number" class="form-control" style="width:120px" @bind="projectId" />
-        </div>
-        <div class="col-auto">
-            <button class="btn btn-primary mt-4" @onclick="GenerateReport" disabled="@(loading || projectId <= 0)">Generate Report</button>
-        </div>
-    </div>
-    @if (errorMessage != null)
-    {
-        <div class="alert alert-danger mt-3 mb-0">@errorMessage</div>
-    }
-    @if (loading)
-    {
-        <div class="mt-3 mb-0">
-            <span class="spinner-border spinner-border-sm" /> Loading...
-        </div>
-    }
-</div>
-
-@if (report != null)
+@if (Report is not null)
 {
-    <div class="report-container" id="report-content">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h2 class="h4 mb-0">@report.ProjectName <small class="text-muted">(#@report.ProjectId)</small></h2>
-            <button class="btn btn-outline-secondary btn-sm" @onclick="ExportPdf">Export PDF</button>
-        </div>
-        <div class="meta small text-muted mb-3">
-            <span class="me-3"><strong>Status:</strong> @report.Summary?.Status</span>
-            <span class="me-3"><strong>Manager:</strong> @report.Summary?.Manager</span>
-            <span class="me-3"><strong>Company:</strong> @report.Summary?.Company</span>
-            <span><strong>Generated:</strong> @report.GeneratedAt.ToLocalTime()</span>
-        </div>
+    <FluentCard Style="padding:1rem;">
+        <h2>@Report.ProjectName (#@Report.ProjectId)</h2>
+        <p>
+            <b>Status:</b> @Report.Summary?.Status
+        </p>
+        <p><b>Manager:</b> @Report.Summary?.Manager | <b>Company:</b> @Report.Summary?.Company</p>
+        <p><b>Timeline:</b> @Report.Timeline?.PlannedDays d planned / @Report.Timeline?.TotalDays d actual (Var: @Report.Timeline?.VarianceDays)</p>
+        <p><b>Budget:</b> @Report.Budget?.EstimatedHours h est / @Report.Budget?.ActualHours h actual (Var: @Report.Budget?.VarianceHours)</p>
 
-        @if (!string.IsNullOrWhiteSpace(report.AiGeneratedSummary))
+        @if (!string.IsNullOrWhiteSpace(Report.AiGeneratedSummary))
         {
-            <section class="mb-4">
-                <h3 class="h5">AI Summary</h3>
-                <div class="markdown" @onclick="ToggleWrap">
-                    @((MarkupString)markdownHtml)
-                </div>
-            </section>
+            <FluentAccordion>
+                <FluentAccordionItem Heading="AI Summary">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Globe())" Color="Color.Neutral" Slot="start" />
+                    <div>@(new MarkupString(AiSummaryHtml))</div>
+                </FluentAccordionItem>
+            </FluentAccordion>
         }
-        @if (report.Timeline != null)
-        {
-            <section class="mb-4">
-                <h3 class="h6 text-uppercase text-secondary">Timeline</h3>
-                <div class="row row-cols-2 row-cols-md-4 g-2 small">
-                    <div class="col"><div class="stat"><span class="label">Planned Days</span><span class="value">@report.Timeline.PlannedDays</span></div></div>
-                    <div class="col"><div class="stat"><span class="label">Actual Days</span><span class="value">@report.Timeline.TotalDays</span></div></div>
-                    <div class="col"><div class="stat"><span class="label">Variance</span><span class="value">@report.Timeline.VarianceDays (@report.Timeline.ScheduleAdherence)</span></div></div>
-                    <div class="col"><div class="stat"><span class="label">Performance</span><span class="value">@report.Timeline.SchedulePerformance</span></div></div>
-                </div>
-            </section>
-        }
-        @if (report.Budget != null)
-        {
-            <section class="mb-4">
-                <h3 class="h6 text-uppercase text-secondary">Budget</h3>
-                <div class="row row-cols-2 row-cols-md-4 g-2 small">
-                    <div class="col"><div class="stat"><span class="label">Estimated Hrs</span><span class="value">@report.Budget.EstimatedHours</span></div></div>
-                    <div class="col"><div class="stat"><span class="label">Actual Hrs</span><span class="value">@report.Budget.ActualHours</span></div></div>
-                    <div class="col"><div class="stat"><span class="label">Variance</span><span class="value">@report.Budget.VarianceHours (@report.Budget.BudgetAdherence)</span></div></div>
-                    <div class="col"><div class="stat"><span class="label">Cost Perf.</span><span class="value">@report.Budget.CostPerformance</span></div></div>
-                </div>
-            </section>
-        }
-        @if (report.Phases?.Any() == true)
-        {
-            <section class="mb-4">
-                <h3 class="h6 text-uppercase text-secondary">Phases (@report.Phases.Count)</h3>
-                <table class="table table-striped table-bordered table-sm align-middle small">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Phase</th>
-                            <th>Status</th>
-                            <th>Est Hrs</th>
-                            <th>Act Hrs</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var p in report.Phases)
-                    {
-                        <tr>
-                            <td>@p.PhaseName</td>
-                            <td><span class="badge bg-@(p.Status == "Closed" ? "success" : "secondary")">@p.Status</span></td>
-                            <td>@p.EstimatedHours</td>
-                            <td>@p.ActualHours</td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            </section>
-        }
-        @if (report.Tickets?.Any() == true)
-        {
-            <section class="mb-4">
-                <h3 class="h6 text-uppercase text-secondary">Tickets (@report.Tickets.Count)</h3>
-                <table class="table table-hover table-bordered table-sm align-middle small">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Summary</th>
-                            <th>Status</th>
-                            <th>Est/Act Hrs</th>
-                            <th>Assigned</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var t in report.Tickets)
-                    {
-                        <tr>
-                            <td>@t.TicketNumber</td>
-                            <td>@t.Summary</td>
-                            <td><span class="badge bg-@(t.Status == "Closed" ? "success" : "info")">@t.Status</span></td>
-                            <td>@t.EstimatedHours / @t.ActualHours</td>
-                            <td>@t.AssignedTo</td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            </section>
-        }
-    </div>
+
+        <FluentTabs ActiveTabId="phasesTab">
+            <FluentTab Id="phasesTab" Label="Phases">
+                @if (Report.Phases is null || Report.Phases.Count == 0)
+                {
+                    <p>No phases.</p>
+                }
+                else
+                {
+                    <FluentDataGrid Items="@Report.Phases.AsQueryable()" GenerateFooter="false">
+                        <PropertyColumn Property="@(p => p.PhaseName)" Title="Name"/>
+                        <PropertyColumn Property="@(p => p.Status)" Title="Status"/>
+                        <PropertyColumn Property="@(p => p.EstimatedHours)" Title="Est Hrs"/>
+                        <PropertyColumn Property="@(p => p.ActualHours)" Title="Actual Hrs"/>
+                    </FluentDataGrid>
+                }
+            </FluentTab>
+            <FluentTab Id="ticketsTab" Label="Tickets">
+                @if (Report.Tickets is null || Report.Tickets.Count == 0)
+                {
+                    <p>No tickets.</p>
+                }
+                else
+                {
+                    <FluentDataGrid Items="@Report.Tickets.AsQueryable()" GenerateFooter="false">
+                        <PropertyColumn Property="@(t => t.TicketNumber)" Title="Number"/>
+                        <PropertyColumn Property="@(t => t.Summary)" Title="Summary"/>
+                        <PropertyColumn Property="@(t => t.Status)" Title="Status"/>
+                        <PropertyColumn Property="@(t => t.EstimatedHours)" Title="Est Hrs"/>
+                        <PropertyColumn Property="@(t => t.ActualHours)" Title="Actual Hrs"/>
+                    </FluentDataGrid>
+                }
+            </FluentTab>
+        </FluentTabs>
+    </FluentCard>
 }
 
 @code {
-    private int projectId;
-    private bool loading;
-    private string? errorMessage;
-    private ProjectCompletionReportResponse? report;
-    private string markdownHtml = string.Empty;
+    int ProjectId { get; set; }
+    ProjectCompletionReportResponse? Report;
+    bool IsLoading;
+    bool IsPdfLoading;
+    string? ErrorMessage;
+    string AiSummaryHtml => Report?.AiGeneratedSummary is null ? string.Empty : Markdown.ToHtml(Report.AiGeneratedSummary);
 
-    private async Task GenerateReport()
+    async Task GenerateReport()
     {
-        errorMessage = null;
-        report = null;
-        markdownHtml = string.Empty;
-        loading = true;
+        ErrorMessage = null;
+        IsLoading = true;
+        Report = null;
+        StateHasChanged();
         try
         {
-            var req = new ProjectCompletionReportRequest { ProjectId = projectId };
-            var response = await Http.PostAsJsonAsync("api/reports/project-completion", req);
-            if (response.IsSuccessStatusCode)
+            var req = new ProjectCompletionReportRequest { ProjectId = ProjectId };
+            var httpResp = await Http.PostAsJsonAsync("api/reports/project-completion", req);
+            if (!httpResp.IsSuccessStatusCode)
             {
-                report = await response.Content.ReadFromJsonAsync<ProjectCompletionReportResponse>();
-                if (!string.IsNullOrWhiteSpace(report?.AiGeneratedSummary))
-                {
-                    var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
-                    markdownHtml = Markdown.ToHtml(report.AiGeneratedSummary, pipeline);
-                }
+                ErrorMessage = $"Failed: {httpResp.StatusCode}";
             }
             else
             {
-                errorMessage = $"Error: {response.StatusCode}";
+                Report = await httpResp.Content.ReadFromJsonAsync<ProjectCompletionReportResponse>();
             }
         }
         catch (Exception ex)
         {
-            errorMessage = ex.Message;
+            ErrorMessage = ex.Message;
         }
         finally
         {
-            loading = false;
+            IsLoading = false;
         }
     }
 
-    private async Task ExportPdf()
+    async Task DownloadPdf()
     {
-        if (report == null) return;
-        await JSRuntime.InvokeVoidAsync("exportReportPdf", "report-content", $"ProjectReport-{report.ProjectId}.pdf");
+        if (Report is null) return;
+        ErrorMessage = null;
+        IsPdfLoading = true;
+        try
+        {
+            var httpResp = await Http.PostAsJsonAsync("api/reports/project-completion/pdf", Report);
+            if (!httpResp.IsSuccessStatusCode)
+            {
+                ErrorMessage = $"PDF failed: {httpResp.StatusCode}";
+                return;
+            }
+
+            var bytes = await httpResp.Content.ReadAsByteArrayAsync();
+            var base64 = Convert.ToBase64String(bytes);
+            await JS.InvokeVoidAsync("saveFile", base64, $"project-{Report.ProjectId}-completion-report.pdf", "application/pdf");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsPdfLoading = false;
+        }
     }
-
-    private void ToggleWrap() { /* placeholder for future interaction */ }
-
-    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 }

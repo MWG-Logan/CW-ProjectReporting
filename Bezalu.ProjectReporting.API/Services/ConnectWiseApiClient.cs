@@ -2,8 +2,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using System.Text;
-using System.Linq;
-using System.Net.Http;
 
 namespace Bezalu.ProjectReporting.API.Services;
 
@@ -24,12 +22,6 @@ public class ConnectWiseApiClient(HttpClient httpClient, IConfiguration configur
     private readonly string _apiVersion = configuration["ConnectWise:ApiVersion"] ?? "";
 
     private bool _configured;
-
-    private static string NormalizeBase(string url)
-    {
-        if (string.IsNullOrWhiteSpace(url)) return "https://api-na.myconnectwise.net/v4_6_release/apis/3.0/"; // fallback
-        return url.EndsWith('/') ? url : url + "/";
-    }
 
     private void EnsureConfigured()
     {

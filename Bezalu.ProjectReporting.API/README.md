@@ -1,202 +1,97 @@
-# Project Reporting API
+# Project Reporting Application
 
-This API provides project completion reporting functionality for ConnectWise Manage projects, with AI-powered analysis using Azure OpenAI.
+Full solution providing interactive project completion reporting for ConnectWise Manage with AI summary and PDF export.
 
-## Features
+## Components
 
-- **Project Completion Reports**: Generate comprehensive reports analyzing project completion, including:
-  - Timeline analysis (planned vs actual dates)
-  - Budget analysis (planned vs actual hours)
-  - Phase-by-phase breakdown
-  - Ticket summaries with notes
-  - AI-generated executive summary and insights
+- Web Front-End (Blazor WebAssembly) served as static assets (Azure Static Web Apps).
+- Serverless API (Azure Functions isolated worker) for data aggregation and AI summary.
+- Shared DTO library for consistent contracts.
+- PDF generation via QuestPDF using already fetched report payload (no regeneration).
 
-## API Endpoints
+## End-to-End Flow
+1. User enters Project ID and triggers `POST /api/reports/project-completion`.
+2. API aggregates ConnectWise data, builds `ProjectCompletionReportResponse`, calls Azure OpenAI for AI summary, returns JSON.
+3. Front-end displays report (timeline, budget, phases, tickets, AI summary rendered as Markdown).
+4. User clicks Download PDF; front-end posts the existing JSON report body to `POST /api/reports/project-completion/pdf` (avoids second data + AI call). API returns PDF bytes.
+5. Front-end uses JS interop helper (`saveFile`) to download the PDF with filename `project-{id}-completion-report.pdf`.
 
-### Generate Project Completion Report
+## Primary API Endpoints
 
-**Endpoint**: `POST /api/reports/project-completion`
-
-**Request Body**:
-```json
-{
-  "projectId": 12345
-}
+### POST /api/reports/project-completion
+Request body:
 ```
-
-**Response**:
-```json
-{
-  "projectId": 12345,
-  "projectName": "Example Project",
-  "summary": {
-    "status": "Completed",
-    "actualStart": "2024-01-01T00:00:00Z",
-    "actualEnd": "2024-03-31T00:00:00Z",
-    "plannedStart": "2024-01-01T00:00:00Z",
-    "plannedEnd": "2024-03-15T00:00:00Z",
-    "manager": "John Doe",
-    "company": "Acme Corp"
-  },
-  "timeline": {
-    "totalDays": 90,
-    "plannedDays": 74,
-    "varianceDays": 16,
-    "scheduleAdherence": "Behind Schedule",
-    "schedulePerformance": "121.6%"
-  },
-  "budget": {
-    "estimatedHours": 500.0,
-    "actualHours": 550.0,
-    "varianceHours": 50.0,
-    "estimatedCost": 0,
-    "actualCost": 0,
-    "varianceCost": 0,
-    "budgetAdherence": "Slightly Over",
-    "costPerformance": "110.0%"
-  },
-  "phases": [...],
-  "tickets": [...],
-  "aiGeneratedSummary": "...",
-  "generatedAt": "2024-10-29T04:00:00Z"
-}
+{ "projectId":12345 }
 ```
+Response: `ProjectCompletionReportResponse` (see docs/contract.md).
 
-## Configuration
+### POST /api/reports/project-completion/pdf
+Request body: full `ProjectCompletionReportResponse` previously returned by the first endpoint.
+Response: `application/pdf` file.
 
-The API requires the following configuration settings:
+## Report Object Highlights
+- Summary (status, dates, manager, company)
+- TimelineAnalysis (planned vs actual days, variance, adherence, performance %)
+- BudgetAnalysis (estimated vs actual hours, variance, adherence)
+- Phases list (per phase hours + status)
+- Tickets list (meta, hours, notes subset)
+- AiGeneratedSummary (markdown rendered client-side with Markdig)
 
-### ConnectWise Configuration
+## Operability Notes
+- PDF endpoint expects complete report payload; front-end must retain JSON until download.
+- AI call cost avoided for PDF generation due to reuse of existing summary.
+- Truncation applied to notes for AI prompt and PDF to control size.
 
-- `ConnectWise:BaseUrl`: The base URL for your ConnectWise API (default: `https://na.myconnectwise.net/v4_6_release/apis/3.0`)
-- `ConnectWise:CompanyId`: Your ConnectWise company identifier
-- `ConnectWise:PublicKey`: Your ConnectWise API public key
-- `ConnectWise:PrivateKey`: Your ConnectWise API private key
-- `ConnectWise:ClientId`: Your ConnectWise client ID (application identifier)
+## Local Development
+Prerequisites:
+- .NET SDK
+- Azure Functions Core Tools
+- Valid ConnectWise + Azure OpenAI credentials in `local.settings.json` (excluded from source control).
 
-### Azure OpenAI Configuration
-
-- `AzureOpenAI:Endpoint`: Your Azure OpenAI resource endpoint (e.g., `https://your-resource.openai.azure.com/`)
-- `AzureOpenAI:ApiKey`: Your Azure OpenAI API key
-- `AzureOpenAI:DeploymentName`: The deployment name for your GPT model (default: `gpt-4`)
-
-### Local Development
-
-For local development, update the `local.settings.json` file with your credentials:
-
-```json
-{
-  "IsEncrypted": false,
-  "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "ConnectWise:BaseUrl": "https://na.myconnectwise.net/v4_6_release/apis/3.0",
-    "ConnectWise:CompanyId": "your-company-id",
-    "ConnectWise:PublicKey": "your-public-key",
-    "ConnectWise:PrivateKey": "your-private-key",
-    "ConnectWise:ClientId": "your-client-id",
-    "AzureOpenAI:Endpoint": "https://your-resource-name.openai.azure.com/",
-    "AzureOpenAI:ApiKey": "your-api-key",
-    "AzureOpenAI:DeploymentName": "gpt-4"
-  }
-}
+Run API:
 ```
+func start
+```
+Run front-end:
+```
+dotnet run --project Bezalu.ProjectReporting.Web
+```
+Front-end will proxy to API according to Static Web Apps configuration/emulator or manual CORS settings if needed.
 
-### Azure Deployment
+## Azure Deployment Overview
+- Deploy Blazor WebAssembly output (Release) to Azure Static Web Apps.
+- Deploy Azure Functions project to same Static Web Apps resource (api folder) or separate Functions App (configure SWA `api_location`).
+- Set configuration (App Settings) for ConnectWise and Azure OpenAI keys; prefer Key Vault references in production.
 
-When deploying to Azure Functions, configure these settings as Application Settings in the Azure Portal or via Azure CLI.
+Required App Settings:
+- `ConnectWise:BaseUrl`, `ConnectWise:CompanyId`, `ConnectWise:PublicKey`, `ConnectWise:PrivateKey`, `ConnectWise:ClientId`
+- `AzureOpenAI:Endpoint`, `AzureOpenAI:DeploymentName` (credential via `DefaultAzureCredential` in code; ensure managed identity / RBAC permissions)
 
-## Architecture
-
-The API is built using:
-
-- **Azure Functions** (Isolated Worker Model) for serverless hosting
-- **.NET 9.0** runtime
-- **ConnectWise Manage API** for project data retrieval
-- **Azure OpenAI** for AI-powered report generation
-
-### Key Components
-
-1. **ProjectCompletionReportFunction**: The main HTTP-triggered Azure Function endpoint
-2. **IProjectReportingService**: Orchestrates data gathering and report generation
-3. **IConnectWiseApiClient**: HTTP client wrapper for ConnectWise API calls
-4. **IAzureOpenAIService**: Azure OpenAI integration for generating summaries
-5. **DTOs**: Data Transfer Objects for request/response models
-6. **Models**: ConnectWise entity models
-
-## Report Content
-
-The project completion report includes:
-
-1. **Project Summary**: Basic project information (status, dates, manager, company)
-2. **Timeline Analysis**: 
-   - Planned vs actual duration
-   - Schedule variance
-   - Schedule adherence assessment
-3. **Budget Analysis**:
-   - Planned vs actual hours
-   - Hours variance
-   - Budget adherence assessment
-4. **Phase Details**: For each project phase:
-   - Status and dates
-   - Estimated vs actual hours
-   - Associated notes
-5. **Ticket Summaries**: For each ticket:
-   - Ticket number and summary
-   - Status, type, and subtype
-   - Estimated vs actual hours
-   - Associated notes
-   - Assignment information
-6. **AI-Generated Summary**: Comprehensive analysis including:
-   - Overall project performance
-   - Time budget adherence
-   - Schedule adherence
-   - Quality of notes vs actual completion
-   - Key insights and recommendations
-
-## Usage for Frontend
-
-The JSON response is designed to be easily consumed by frontend applications (e.g., Blazor) for:
-
-- Displaying project metrics
-- Generating PDF reports
-- Creating data visualizations
-- Presenting AI-generated insights
-
-The structured format allows frontend developers to:
-- Bind directly to UI components
-- Generate charts and graphs
-- Create custom report layouts
-- Export to various formats (PDF, Excel, etc.)
+## Performance & Size
+- WASM project uses trimming + AOT for faster runtime once cached; consider disabling AOT in Debug for faster builds.
+- AI prompt size limited by truncation strategies in service.
 
 ## Error Handling
+-400 invalid project id or invalid report payload for PDF endpoint.
+-404 project not found.
+-500 unexpected processing errors.
 
-The API returns appropriate HTTP status codes:
+## Security
+- Function auth level currently `Function`; set keys or add front-end auth (e.g., Entra ID) before production.
+- Do not send sensitive data inside report payload for PDF endpoint; only project analysis data.
 
-- `200 OK`: Successful report generation
-- `400 Bad Request`: Invalid project ID
-- `404 Not Found`: Project not found
-- `500 Internal Server Error`: Server error during processing
+## Extensibility
+- Add cached layer to reuse raw data for multiple exports.
+- Extend PDF sections (charts) by computing aggregates client-side and passing them in extended DTO.
+- Add Excel export by introducing another POST /api/reports/project-completion/excel endpoint using a spreadsheet library server-side.
 
-## Security Considerations
+## Documentation
+See `/docs` for deeper details:
+- architecture.md (layer & data flow)
+- contract.md (DTO shapes)
+- pdf.md (PDF composition logic)
+- deployment.md (Azure setup steps)
+- frontend.md (UI behaviors)
 
-- Store API keys and credentials securely (use Azure Key Vault in production)
-- The `local.settings.json` file is excluded from source control
-- Use Function-level authorization (API keys) for production deployments
-- Consider implementing additional authentication/authorization as needed
-
-## Development
-
-To run locally:
-
-1. Install Azure Functions Core Tools
-2. Configure `local.settings.json` with valid credentials
-3. Run `func start` or press F5 in Visual Studio
-
-To test the endpoint:
-
-```bash
-curl -X POST http://localhost:7071/api/reports/project-completion \
-  -H "Content-Type: application/json" \
-  -d '{"projectId": 12345}'
-```
+---
+This README targets the operational overview; for detailed structures consult docs directory.
