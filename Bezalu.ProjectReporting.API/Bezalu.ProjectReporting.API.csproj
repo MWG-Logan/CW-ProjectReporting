@@ -25,8 +25,4 @@
     <ProjectReference Include="..\Bezalu.ProjectReporting.Shared\Bezalu.ProjectReporting.Shared.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="DTOs\" />
-  </ItemGroup>
-
 </Project>
