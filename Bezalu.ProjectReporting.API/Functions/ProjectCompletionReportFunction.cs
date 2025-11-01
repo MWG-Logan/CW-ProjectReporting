@@ -220,6 +220,7 @@ public class ProjectCompletionReportFunction(
             c.Column(col =>
             {
                 col.Item().Text("Tickets").FontSize(14).Bold();
+                const int maxNotes = 10;
                 foreach (var ticket in report.Tickets ?? [])
                     col.Item().BorderBottom(1).PaddingVertical(4).Column(inner =>
                     {
@@ -233,10 +234,10 @@ public class ProjectCompletionReportFunction(
                             inner.Item().Text($"Assigned: {ticket.AssignedTo}").FontSize(9);
                         if (ticket.Notes?.Any() != true) return;
                         inner.Item().Text("Notes:").FontSize(9);
-                        foreach (var n in ticket.Notes.Take(10))
+                        foreach (var n in ticket.Notes.Take(maxNotes))
                             inner.Item().Text($" - {n}").FontSize(9);
-                        if (ticket.Notes.Count > 10)
-                            inner.Item().Text($" - ... ({ticket.Notes.Count - 10} more notes truncated)").FontSize(9);
+                        if (ticket.Notes.Count > maxNotes)
+                            inner.Item().Text($" - ... ({ticket.Notes.Count - maxNotes} more notes truncated)").FontSize(9);
                     });
             });
         };
