@@ -217,10 +217,10 @@ public class ProjectCompletionReportFunction(
     {
         return c =>
         {
+            const int maxNotes = 10;
             c.Column(col =>
             {
                 col.Item().Text("Tickets").FontSize(14).Bold();
-                const int maxNotes = 10;
                 foreach (var ticket in report.Tickets ?? [])
                     col.Item().BorderBottom(1).PaddingVertical(4).Column(inner =>
                     {
