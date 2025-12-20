@@ -50,13 +50,6 @@ jobs:
       - name: 'Build and prepare .NET project for deployment'
         run: dotnet publish --configuration Release --output ./publish
 
-      - name: 'Log in to Azure with AZ CLI'
-        uses: azure/login@v2
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
       - name: Install OIDC Client from Core Package
         run: npm install @actions/core@1.6.0 @actions/http-client
       - name: Get Id Token
@@ -68,32 +61,30 @@ jobs:
                return await coredemo.getIDToken()
            result-encoding: string
 
-      - name: Deploy ${{ env.PROJECT }} to Azure Static Web App
+      - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: "upload"
+          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
+          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
+          production_branch: "dev"
+          github_id_token: ${{ steps.idtoken.outputs.result }}
+          skip_app_build: true
+          skip_api_build: true
           app_location: "publish/wwwroot"
           output_location: "publish/wwwroot"
-          skip_app_build: true
-          production_branch: 'main'
-          github_id_token: ${{ steps.idtoken.outputs.result }}
-
-
+          ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     name: Close Pull Request Job
-    permissions:
-      id-token: write  # Required for OIDC
-      contents: read   # Required for actions/checkout
     steps:
       - name: Close Pull Request
         id: closepullrequest
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "close"
