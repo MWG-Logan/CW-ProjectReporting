@@ -39,14 +39,8 @@ jobs:
       - name: Workload Restore
         run: dotnet workload restore
 
-      - name: Package Restore
-        run: dotnet restore
-
-      - name: .NET Build
-        run: dotnet build ${{ env.PROJECT }} -c ${{ env.BUILD_CONFIG }} -f ${{ env.DOTNET_VERSION }} --no-restore
-
       - name: .NET Publish
-        run: dotnet publish ${{ env.PROJECT }} -c ${{ env.BUILD_CONFIG }} -o publish -f ${{ env.DOTNET_VERSION }} --no-build
+        run: dotnet publish ${{ env.PROJECT }} -c ${{ env.BUILD_CONFIG }} -o publish -f ${{ env.DOTNET_VERSION }}
 
       - name: Deploy MyAzureSWAProject to Azure Static Web App
         id: builddeploy
