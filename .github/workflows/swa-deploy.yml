@@ -24,6 +24,9 @@ jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
     name: Build and deploy Bezalu.ProjectReporting.Web
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read   # Required for actions/checkout
     defaults:
       run:
         shell: bash
@@ -70,6 +73,9 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     name: Close Pull Request Job
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read   # Required for actions/checkout
     steps:
       - name: 'Log in to Azure with AZ CLI'
         uses: azure/login@v2
