@@ -45,7 +45,7 @@ jobs:
         run: dotnet workload restore
 
       - name: 'Build and prepare .NET project for deployment'
-        run: dotnet publish -configuration Release -output ./publish
+        run: dotnet publish --configuration Release --output ./publish
 
       - name: Deploy ${{ env.PROJECT }} to Azure Static Web App
         id: builddeploy
