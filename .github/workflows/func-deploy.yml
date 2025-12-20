@@ -1,0 +1,87 @@
+name: Build and deploy .NET project to Azure Function App using OIDC
+
+# CONFIGURATION
+#
+# This workflow can be used to deploy your .NET project to a function app on any hosting plan, except for Container Apps (which uses functions-container-action).
+#
+# For an overview of using GitHub workflows with Azure Functions, see https://learn.microsoft.com/azure/azure-functions/functions-how-to-github-actions
+#
+# 1. Configure a federated identity credential to your GitHub branch on an Azure user-assigned managed identity.
+#   For instructions, follow the README at https://github.com/Azure/functions-action#use-oidc-recommended
+#
+# 2. Add the following values from the managed identity to your repo's variables:
+#   AZURE_CLIENT_ID
+#   AZURE_TENANT_ID
+#   AZURE_SUBSCRIPTION_ID
+#   For instructions on creating repo variables, see https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables#defining-configuration-variables-for-multiple-workflows
+#
+# 3. Ensure your workflow is triggered by your desired event. By default, it is triggered when a push is made to main, and it can be manually run.
+#   For guidance on event triggers, see https://docs.github.com/actions/writing-workflows/choosing-when-your-workflow-runs/triggering-a-workflow#using-events-to-trigger-workflows
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AZURE_FUNCTIONAPP_NAME: ${{ vars.FUNCTION_APP_NAME }}
+  AZURE_FUNCTIONAPP_PROJECT_PATH: 'Bezalu.ProjectReporting.API'
+  DOTNET_VERSION: '10.0.x'
+  BUILD_ARTIFACT_NAME: 'Bezalu.ProjectReporting.API'
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest # Assumes your target function app is Linux-based
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read   # Required for actions/checkout
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.AZURE_FUNCTIONAPP_PROJECT_PATH }}
+    steps:
+      - name: 'Checkout repository'
+        uses: actions/checkout@v6
+
+      - name: 'Set up .NET version: ${{ env.DOTNET_VERSION }}'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Perform additional steps such as running tests, if needed
+
+      - name: 'Build and prepare .NET project for deployment'
+        run: dotnet publish --configuration Release --output ./output
+
+      - name: Upload artifact for the deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BUILD_ARTIFACT_NAME }}
+          path: ${{ env.AZURE_FUNCTIONAPP_PROJECT_PATH }}/output
+          include-hidden-files: true  # Required for .NET projects
+  
+  deploy:
+    runs-on: ubuntu-latest # Assumes your target function app is Linux-based
+    needs: build
+    permissions:
+      id-token: write  # Required for OIDC
+    steps:
+      - name: 'Download artifact from build job'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.BUILD_ARTIFACT_NAME }}
+          path: ./downloaded-artifact
+     
+      - name: 'Log in to Azure with AZ CLI'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        
+      - name: 'Run the Azure Functions action'
+        uses: Azure/functions-action@v1
+        id: deploy-to-function-app
+        with:
+          app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+          package: ./downloaded-artifact
