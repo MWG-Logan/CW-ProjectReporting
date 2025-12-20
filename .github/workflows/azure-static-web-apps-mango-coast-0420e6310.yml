@@ -36,8 +36,8 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Restore
-        run: dotnet restore ${{ env.PROJECT }}
+      - name: Package Restore
+        run: dotnet restore
 
       - name: Workload Restore
         run: dotnet workload restore
