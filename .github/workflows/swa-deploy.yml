@@ -9,20 +9,25 @@ on:
     branches:
       - dev
 
+env:
+  DOTNET_VERSION: "net10.0"
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+  DOTNET_GENERATE_ASPNET_CERTIFICATE: false
+  DOTNET_ADD_GLOBAL_TOOLS_TO_PATH: false
+  DOTNET_MULTILEVEL_LOOKUP: 0
+  PROJECT: "Bezalu.ProjectReporting.Web"
+  BUILD_CONFIG: "Release"
+
 jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
     name: Build and deploy Bezalu.ProjectReporting.Web
-    env:
-      DOTNET_VERSION: "10.0.x"
-      DOTNET_CLI_TELEMETRY_OPTOUT: 1
-      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
-      DOTNET_NOLOGO: true
-      DOTNET_GENERATE_ASPNET_CERTIFICATE: false
-      DOTNET_ADD_GLOBAL_TOOLS_TO_PATH: false
-      DOTNET_MULTILEVEL_LOOKUP: 0
-      PROJECT: "Bezalu.ProjectReporting.Web/Bezalu.ProjectReporting.Web.csproj"
-      BUILD_CONFIG: "Release"
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.PROJECT }}
 
     steps:
       - name: Checkout source
@@ -39,14 +44,14 @@ jobs:
       - name: Workload Restore
         run: dotnet workload restore
 
-      - name: .NET Publish
-        run: dotnet publish ${{ env.PROJECT }} -c ${{ env.BUILD_CONFIG }} -o publish -f ${{ env.DOTNET_VERSION }}
+      - name: 'Build and prepare .NET project for deployment'
+        run: dotnet publish -configuration Release -output ./publish
 
-      - name: Deploy MyAzureSWAProject to Azure Static Web App
+      - name: Deploy ${{ env.PROJECT }} to Azure Static Web App
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_XXXXX_REPLACE_ME_WITH_TOKEN_NAME_XXXXXX }}
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "publish/wwwroot"
@@ -65,5 +70,5 @@ jobs:
         id: closepullrequest
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_MANGO_COAST_0420E6310 }}
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: "close"
