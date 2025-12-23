@@ -37,8 +37,8 @@ jobs:
       - name: .NET Publish
         run: dotnet publish Bezalu.ProjectReporting.Web -c Release -o Bezalu.ProjectReporting.Web/publish
 
-      - name: List publish output for debugging
-        run: ls -al ./Bezalu.ProjectReporting.Web/publish/wwwroot
+      - name: Copy staticwebapp.config.json to Publish Folder
+        run: cp Bezalu.ProjectReporting.Web/staticwebapp.config.json Bezalu.ProjectReporting.Web/publish/wwwroot/staticwebapp.config.json
         
       - name: Build And Deploy
         id: builddeploy
