@@ -138,9 +138,9 @@ else
             }
             Projects = await response.Content.ReadFromJsonAsync<List<ProjectListItem>>();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            ErrorMessage = ex.Message;
+            ErrorMessage = "An error occurred while loading projects. Please try again.";
         }
         finally
         {
@@ -160,16 +160,16 @@ else
             var httpResp = await Http.PostAsJsonAsync("api/reports/project-completion", req);
             if (!httpResp.IsSuccessStatusCode)
             {
-                ErrorMessage = $"Failed: {httpResp.StatusCode}";
+                ErrorMessage = $"Failed to generate report: {httpResp.StatusCode}";
             }
             else
             {
                 Report = await httpResp.Content.ReadFromJsonAsync<ProjectCompletionReportResponse>();
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            ErrorMessage = ex.Message;
+            ErrorMessage = "An error occurred while generating the report. Please try again.";
         }
         finally
         {
@@ -193,7 +193,7 @@ else
             var httpResp = await Http.PostAsJsonAsync("api/reports/project-completion/pdf", Report);
             if (!httpResp.IsSuccessStatusCode)
             {
-                ErrorMessage = $"PDF failed: {httpResp.StatusCode}";
+                ErrorMessage = $"Failed to generate PDF: {httpResp.StatusCode}";
                 return;
             }
 
@@ -201,9 +201,9 @@ else
             var base64 = Convert.ToBase64String(bytes);
             await JS.InvokeVoidAsync("saveFile", base64, $"project-{Report.ProjectId}-completion-report.pdf", "application/pdf");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            ErrorMessage = ex.Message;
+            ErrorMessage = "An error occurred while generating the PDF. Please try again.";
         }
         finally
         {
