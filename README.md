@@ -134,10 +134,16 @@ CW-ProjectReporting/
 
 1. User accesses the Blazor WebAssembly app hosted on Azure Static Web Apps
 2. Static Web Apps enforces authentication via Azure AD (configured in `staticwebapp.config.json`)
-3. Authenticated users receive session cookies from SWA
-4. API requests include SWA authentication cookies automatically
-5. SWA validates authentication before forwarding requests to Azure Functions
-6. Azure Functions trust the SWA authentication layer (no additional function-level auth required)
+3. Unauthenticated users are automatically redirected to `/.auth/login/aad` (Azure AD login)
+4. Authenticated users receive session cookies from SWA
+5. API requests include SWA authentication cookies automatically
+6. SWA validates authentication before forwarding requests to Azure Functions
+7. Azure Functions trust the SWA authentication layer (no additional function-level auth required)
+
+**Important**: The `staticwebapp.config.json` must include:
+- `navigationFallback` with `/.auth/*` exclusion to ensure authentication endpoints work correctly
+- `responseOverrides` for 401 status to automatically redirect unauthenticated users
+- Exclusions for Blazor static assets (`_framework/*`, `_content/*`) from the SPA fallback
 
 ## Development Notes
 

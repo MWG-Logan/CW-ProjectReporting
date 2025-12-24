@@ -31,7 +31,10 @@
 - Configure authentication provider in Azure Portal under SWA > Settings > Authentication
 - `staticwebapp.config.json` enforces authentication:
   - `/api/*` routes require `authenticated` role
-  - Unauthenticated users redirected to `/.auth/login/aad`
+  - `/login` route rewrites to `/.auth/login/aad` for easy access
+  - Unauthenticated users automatically redirected to Azure AD via `responseOverrides` (401 → `/.auth/login/aad`)
+  - `navigationFallback` configured with `/.auth/*` exclusion to ensure authentication endpoints work correctly
+  - Blazor static assets (`_framework/*`, `_content/*`, CSS, JS) excluded from SPA fallback
 - No function keys needed - Azure Functions use `AuthorizationLevel.Anonymous` and trust SWA authentication
 - Session managed by SWA; cookies automatically included in API requests
 
