@@ -16,7 +16,7 @@ public class ProjectCompletionReportFunction(
 {
     [Function("GenerateProjectCompletionReport")]
     public async Task<IActionResult> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "reports/project-completion")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "reports/project-completion")]
         HttpRequest req,
         CancellationToken cancellationToken)
     {
@@ -53,7 +53,7 @@ public class ProjectCompletionReportFunction(
     // Changed to POST and accepts full report body to avoid regeneration
     [Function("GenerateProjectCompletionReportPdf")]
     public async Task<IActionResult> RunPdf(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "reports/project-completion/pdf")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "reports/project-completion/pdf")]
         HttpRequest req,
         CancellationToken cancellationToken)
     {
