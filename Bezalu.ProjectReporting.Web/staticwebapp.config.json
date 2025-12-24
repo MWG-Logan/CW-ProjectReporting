@@ -20,7 +20,8 @@
       "/favicon.ico",
       "/icon-*.png",
       "/manifest.webmanifest",
-      "/service-worker.js"
+      "/service-worker.js",
+      "/service-worker-assets.js"
     ]
   },
   "responseOverrides": {
