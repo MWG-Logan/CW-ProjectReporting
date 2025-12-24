@@ -12,6 +12,7 @@
   "navigationFallback": {
     "rewrite": "index.html",
     "exclude": [
+      "/.auth/*",
       "/_framework/*",
       "/_content/*",
       "/css/*",
