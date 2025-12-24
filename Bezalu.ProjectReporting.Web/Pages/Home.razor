@@ -130,7 +130,13 @@ else
         IsLoadingProjects = true;
         try
         {
-            Projects = await Http.GetFromJsonAsync<List<ProjectListItem>>("api/projects");
+            var response = await Http.GetAsync("api/projects");
+            if (!response.IsSuccessStatusCode)
+            {
+                ErrorMessage = $"Failed to load projects: {response.StatusCode}";
+                return;
+            }
+            Projects = await response.Content.ReadFromJsonAsync<List<ProjectListItem>>();
         }
         catch (Exception ex)
         {

@@ -26,14 +26,16 @@ public class ProjectReportingService(
             "project/projects?conditions=status/name='Active'&orderBy=name",
             cancellationToken) ?? new List<CWProject>();
 
-        return projects.Select(p => new ProjectListItem
-        {
-            ProjectId = p.Id ?? 0,
-            ProjectName = p.Name,
-            Status = p.Status?.Name,
-            Manager = p.Manager?.Name,
-            Company = p.Company?.Name
-        }).ToList();
+        return projects
+            .Where(p => p.Id.HasValue && p.Id.Value > 0)
+            .Select(p => new ProjectListItem
+            {
+                ProjectId = p.Id!.Value,
+                ProjectName = p.Name,
+                Status = p.Status?.Name,
+                Manager = p.Manager?.Name,
+                Company = p.Company?.Name
+            }).ToList();
     }
 
     public async Task<ProjectCompletionReportResponse> GenerateProjectCompletionReportAsync(
