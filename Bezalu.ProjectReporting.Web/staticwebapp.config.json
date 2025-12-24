@@ -21,6 +21,7 @@
       "/icon-*.png",
       "/manifest.webmanifest",
       "/service-worker.js",
+      "/service-worker.published.js",
       "/service-worker-assets.js"
     ]
   },
