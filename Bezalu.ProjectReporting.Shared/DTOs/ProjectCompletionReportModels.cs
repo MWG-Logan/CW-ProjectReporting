@@ -1,5 +1,14 @@
 namespace Bezalu.ProjectReporting.Shared.DTOs;
 
+public class ProjectListItem
+{
+ public int ProjectId { get; set; }
+ public string? ProjectName { get; set; }
+ public string? Status { get; set; }
+ public string? Manager { get; set; }
+ public string? Company { get; set; }
+}
+
 public class ProjectCompletionReportRequest
 {
  public int ProjectId { get; set; }

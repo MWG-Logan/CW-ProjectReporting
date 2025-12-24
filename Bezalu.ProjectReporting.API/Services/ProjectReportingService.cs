@@ -7,6 +7,7 @@ namespace Bezalu.ProjectReporting.API.Services;
 
 public interface IProjectReportingService
 {
+    Task<List<ProjectListItem>> GetActiveProjectsAsync(CancellationToken cancellationToken = default);
     Task<ProjectCompletionReportResponse> GenerateProjectCompletionReportAsync(int projectId, CancellationToken cancellationToken = default);
 }
 
@@ -16,6 +17,25 @@ public class ProjectReportingService(
     ILogger<ProjectReportingService> logger)
     : IProjectReportingService
 {
+    public async Task<List<ProjectListItem>> GetActiveProjectsAsync(CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Retrieving active projects");
+
+        // Query ConnectWise for projects with "Active" status
+        var projects = await connectWiseClient.GetListAsync<CWProject>(
+            "project/projects?conditions=status/name='Active'&orderBy=name",
+            cancellationToken) ?? new List<CWProject>();
+
+        return projects.Select(p => new ProjectListItem
+        {
+            ProjectId = p.Id ?? 0,
+            ProjectName = p.Name,
+            Status = p.Status?.Name,
+            Manager = p.Manager?.Name,
+            Company = p.Company?.Name
+        }).ToList();
+    }
+
     public async Task<ProjectCompletionReportResponse> GenerateProjectCompletionReportAsync(
         int projectId, 
         CancellationToken cancellationToken = default)
@@ -161,7 +181,7 @@ public class ProjectReportingService(
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
         var cleaned = text.Replace("\r", " ").Replace("\n", " ").Trim();
-        return cleaned.Length <= maxLen ? cleaned : cleaned.Substring(0, maxLen) + "…";
+        return cleaned.Length <= maxLen ? cleaned : cleaned.Substring(0, maxLen) + "ï¿½";
     }
 
     private string PrepareDataForAI(ProjectCompletionReportResponse report, List<CWProjectNote> projectNotes, Dictionary<int, List<CWTicketNote>> ticketNotes)
@@ -216,11 +236,11 @@ public class ProjectReportingService(
                 sb.AppendLine("  Notes:");
                 foreach (var n in limited)
                 {
-                    sb.AppendLine($"    • [{n.DateCreated:yyyy-MM-dd}] {Sanitize(n.Text)}");
+                    sb.AppendLine($"    ï¿½ [{n.DateCreated:yyyy-MM-dd}] {Sanitize(n.Text)}");
                 }
                 if (notes.Count > limited.Count)
                 {
-                    sb.AppendLine($"    • … ({notes.Count - limited.Count} more notes truncated)");
+                    sb.AppendLine($"    ï¿½ ï¿½ ({notes.Count - limited.Count} more notes truncated)");
                 }
             }
         }

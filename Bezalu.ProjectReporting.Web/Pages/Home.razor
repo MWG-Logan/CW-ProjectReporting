@@ -6,25 +6,54 @@
 
 <PageTitle>Project Reporting</PageTitle>
 
-<FluentCard Style="padding:1rem; margin-bottom:1rem;">
-    <h2>Generate Project Completion Report</h2>
-    <FluentStack Orientation="Orientation.Horizontal" Gap="10">
-        <FluentNumberField @bind-Value="ProjectId" Placeholder="Project ID" Min="1"/>
-        <FluentButton Appearance="Appearance.Accent" OnClick="GenerateReport" Disabled="IsLoading || ProjectId <= 0">Generate Report</FluentButton>
-        <FluentButton Appearance="Appearance.Outline" OnClick="DownloadPdf" Disabled="IsLoading || Report is null || IsPdfLoading">@(IsPdfLoading ? "Generating PDF..." : "Download PDF")</FluentButton>
-        @if (IsLoading)
+@if (Report is null)
+{
+    <FluentCard Style="padding:1rem; margin-bottom:1rem;">
+        <h2>Select a Project</h2>
+        @if (IsLoadingProjects)
         {
             <FluentProgressRing/>
+            <p>Loading projects...</p>
         }
-        @if (!string.IsNullOrEmpty(ErrorMessage))
+        else if (!string.IsNullOrEmpty(ErrorMessage))
         {
             <FluentMessageBar Intent="MessageIntent.Error">@ErrorMessage</FluentMessageBar>
         }
-    </FluentStack>
-</FluentCard>
-
-@if (Report is not null)
+        else if (Projects is null || Projects.Count == 0)
+        {
+            <p>No active projects found.</p>
+        }
+        else
+        {
+            <FluentDataGrid Items="@Projects.AsQueryable()" GridTemplateColumns="2fr 1fr 1fr 1fr 1fr" GenerateFooter="false">
+                <PropertyColumn Property="@(p => p.ProjectName)" Title="Project Name" />
+                <PropertyColumn Property="@(p => p.Status)" Title="Status" />
+                <PropertyColumn Property="@(p => p.Manager)" Title="Manager" />
+                <PropertyColumn Property="@(p => p.Company)" Title="Company" />
+                <TemplateColumn Title="Actions">
+                    <FluentButton Appearance="Appearance.Accent" 
+                                  OnClick="@(() => GenerateReport(context.ProjectId))" 
+                                  Disabled="IsGeneratingReport">
+                        @(IsGeneratingReport && GeneratingProjectId == context.ProjectId ? "Generating..." : "Generate Report")
+                    </FluentButton>
+                </TemplateColumn>
+            </FluentDataGrid>
+        }
+    </FluentCard>
+}
+else
 {
+    <FluentCard Style="padding:1rem; margin-bottom:1rem;">
+        <FluentStack Orientation="Orientation.Horizontal" Gap="10">
+            <FluentButton Appearance="Appearance.Outline" OnClick="BackToProjectList">← Back to Project List</FluentButton>
+            <FluentButton Appearance="Appearance.Outline" OnClick="DownloadPdf" Disabled="IsPdfLoading">@(IsPdfLoading ? "Generating PDF..." : "Download PDF")</FluentButton>
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <FluentMessageBar Intent="MessageIntent.Error">@ErrorMessage</FluentMessageBar>
+            }
+        </FluentStack>
+    </FluentCard>
+
     <FluentCard Style="padding:1rem;">
         <h2>@Report.ProjectName (#@Report.ProjectId)</h2>
         <p>
@@ -81,22 +110,47 @@
 }
 
 @code {
-    int ProjectId { get; set; }
+    List<ProjectListItem>? Projects;
     ProjectCompletionReportResponse? Report;
-    bool IsLoading;
+    bool IsLoadingProjects;
+    bool IsGeneratingReport;
+    int GeneratingProjectId;
     bool IsPdfLoading;
     string? ErrorMessage;
     string AiSummaryHtml => Report?.AiGeneratedSummary is null ? string.Empty : Markdown.ToHtml(Report.AiGeneratedSummary);
 
-    async Task GenerateReport()
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProjects();
+    }
+
+    async Task LoadProjects()
     {
         ErrorMessage = null;
-        IsLoading = true;
-        Report = null;
+        IsLoadingProjects = true;
+        try
+        {
+            Projects = await Http.GetFromJsonAsync<List<ProjectListItem>>("api/projects");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsLoadingProjects = false;
+        }
+    }
+
+    async Task GenerateReport(int projectId)
+    {
+        ErrorMessage = null;
+        IsGeneratingReport = true;
+        GeneratingProjectId = projectId;
         StateHasChanged();
         try
         {
-            var req = new ProjectCompletionReportRequest { ProjectId = ProjectId };
+            var req = new ProjectCompletionReportRequest { ProjectId = projectId };
             var httpResp = await Http.PostAsJsonAsync("api/reports/project-completion", req);
             if (!httpResp.IsSuccessStatusCode)
             {
@@ -113,8 +167,14 @@
         }
         finally
         {
-            IsLoading = false;
+            IsGeneratingReport = false;
         }
+    }
+
+    void BackToProjectList()
+    {
+        Report = null;
+        ErrorMessage = null;
     }
 
     async Task DownloadPdf()
