@@ -10,8 +10,8 @@ using QuestPDF.Infrastructure;
 
 namespace Bezalu.ProjectReporting.API.Functions;
 
-public class ProjectCompletionReportFunction(
-    ILogger<ProjectCompletionReportFunction> logger,
+public class ReportFunction(
+    ILogger<ReportFunction> logger,
     IProjectReportingService reportingService)
 {
     [Function("GenerateProjectCompletionReport")]

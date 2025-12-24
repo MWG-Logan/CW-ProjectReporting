@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using System.Net
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -6,13 +7,27 @@
 
 <PageTitle>Project Reporting</PageTitle>
 
+@if (ShowLoginPrompt)
+{
+    <FluentCard Style="padding:0.5rem 1rem; margin-bottom:1rem;">
+        <FluentStack Orientation="Orientation.Horizontal" Gap="10" VerticalAlignment="VerticalAlignment.Center">
+            <FluentIcon Value="@(new Icons.Regular.Size20.LockClosed())" />
+            <FluentStack>
+                <strong>@LoginPromptText</strong>
+                <span>Sign in again to continue.</span>
+            </FluentStack>
+            <FluentButton Appearance="Appearance.Accent" OnClick="TriggerLogin">Sign in</FluentButton>
+        </FluentStack>
+    </FluentCard>
+}
+
 @if (Report is null)
 {
     <FluentCard Style="padding:1rem; margin-bottom:1rem;">
         <h2>Select a Project</h2>
         @if (IsLoadingProjects)
         {
-            <FluentProgressRing/>
+            <FluentProgressRing />
             <p>Loading projects...</p>
         }
         else if (!string.IsNullOrEmpty(ErrorMessage))
@@ -31,8 +46,8 @@
                 <PropertyColumn Property="@(p => p.Manager)" Title="Manager" />
                 <PropertyColumn Property="@(p => p.Company)" Title="Company" />
                 <TemplateColumn Title="Actions">
-                    <FluentButton Appearance="Appearance.Accent" 
-                                  OnClick="@(() => GenerateReport(context.ProjectId))" 
+                    <FluentButton Appearance="Appearance.Accent"
+                                  OnClick="@(() => GenerateReport(context.ProjectId))"
                                   Disabled="IsGeneratingReport">
                         @(IsGeneratingReport && GeneratingProjectId == context.ProjectId ? "Generating..." : "Generate Report")
                     </FluentButton>
@@ -82,10 +97,10 @@ else
                 else
                 {
                     <FluentDataGrid Items="@Report.Phases.AsQueryable()" GenerateFooter="false">
-                        <PropertyColumn Property="@(p => p.PhaseName)" Title="Name"/>
-                        <PropertyColumn Property="@(p => p.Status)" Title="Status"/>
-                        <PropertyColumn Property="@(p => p.EstimatedHours)" Title="Est Hrs"/>
-                        <PropertyColumn Property="@(p => p.ActualHours)" Title="Actual Hrs"/>
+                        <PropertyColumn Property="@(p => p.PhaseName)" Title="Name" />
+                        <PropertyColumn Property="@(p => p.Status)" Title="Status" />
+                        <PropertyColumn Property="@(p => p.EstimatedHours)" Title="Est Hrs" />
+                        <PropertyColumn Property="@(p => p.ActualHours)" Title="Actual Hrs" />
                     </FluentDataGrid>
                 }
             </FluentTab>
@@ -97,11 +112,11 @@ else
                 else
                 {
                     <FluentDataGrid Items="@Report.Tickets.AsQueryable()" GenerateFooter="false">
-                        <PropertyColumn Property="@(t => t.TicketNumber)" Title="Number"/>
-                        <PropertyColumn Property="@(t => t.Summary)" Title="Summary"/>
-                        <PropertyColumn Property="@(t => t.Status)" Title="Status"/>
-                        <PropertyColumn Property="@(t => t.EstimatedHours)" Title="Est Hrs"/>
-                        <PropertyColumn Property="@(t => t.ActualHours)" Title="Actual Hrs"/>
+                        <PropertyColumn Property="@(t => t.TicketNumber)" Title="Number" />
+                        <PropertyColumn Property="@(t => t.Summary)" Title="Summary" />
+                        <PropertyColumn Property="@(t => t.Status)" Title="Status" />
+                        <PropertyColumn Property="@(t => t.EstimatedHours)" Title="Est Hrs" />
+                        <PropertyColumn Property="@(t => t.ActualHours)" Title="Actual Hrs" />
                     </FluentDataGrid>
                 }
             </FluentTab>
@@ -116,6 +131,8 @@ else
     bool IsGeneratingReport;
     int GeneratingProjectId;
     bool IsPdfLoading;
+    bool ShowLoginPrompt;
+    string LoginPromptText = "Please sign in to continue.";
     string? ErrorMessage;
     string AiSummaryHtml => Report?.AiGeneratedSummary is null ? string.Empty : Markdown.ToHtml(Report.AiGeneratedSummary);
 
@@ -131,6 +148,11 @@ else
         try
         {
             var response = await Http.GetAsync("api/projects");
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                HandleUnauthorized("Please sign in to load projects.");
+                return;
+            }
             if (!response.IsSuccessStatusCode)
             {
                 ErrorMessage = $"Failed to load projects: {response.StatusCode}";
@@ -158,6 +180,11 @@ else
         {
             var req = new ProjectCompletionReportRequest { ProjectId = projectId };
             var httpResp = await Http.PostAsJsonAsync("api/reports/project-completion", req);
+            if (httpResp.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                HandleUnauthorized("Please sign in to generate a report.");
+                return;
+            }
             if (!httpResp.IsSuccessStatusCode)
             {
                 ErrorMessage = $"Failed to generate report: {httpResp.StatusCode}";
@@ -191,6 +218,11 @@ else
         try
         {
             var httpResp = await Http.PostAsJsonAsync("api/reports/project-completion/pdf", Report);
+            if (httpResp.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                HandleUnauthorized("Please sign in to download the PDF.");
+                return;
+            }
             if (!httpResp.IsSuccessStatusCode)
             {
                 ErrorMessage = $"Failed to generate PDF: {httpResp.StatusCode}";
@@ -209,5 +241,17 @@ else
         {
             IsPdfLoading = false;
         }
+    }
+
+    void HandleUnauthorized(string message)
+    {
+        LoginPromptText = message;
+        ShowLoginPrompt = true;
+        ErrorMessage = null;
+    }
+
+    void TriggerLogin()
+    {
+        Nav.NavigateTo("/login?post_login_redirect_uri=.referrer", forceLoad: true);
     }
 }

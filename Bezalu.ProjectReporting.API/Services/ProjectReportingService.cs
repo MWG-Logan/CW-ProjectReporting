@@ -23,7 +23,7 @@ public class ProjectReportingService(
 
         // Query ConnectWise for projects with "Active" status
         var projects = await connectWiseClient.GetListAsync<CWProject>(
-            "project/projects?conditions=status/name='Active'&orderBy=name",
+            "project/projects?conditions=status/name contains 'In Progress'&orderBy=name",
             cancellationToken) ?? new List<CWProject>();
 
         return projects
