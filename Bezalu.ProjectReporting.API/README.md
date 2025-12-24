@@ -95,8 +95,13 @@ Required App Settings:
 
 ## Security
 
-- Function auth level currently `Function`; set keys or add front-end auth (e.g., Entra ID) before production.
-- Do not send sensitive data inside report payload for PDF endpoint; only project analysis data.
+- **Authentication**: Azure Static Web Apps (SWA) with Azure AD integration
+  - Function endpoints use `AuthorizationLevel.Anonymous` - authentication enforced at SWA layer
+  - SWA configuration requires `authenticated` role for all `/api/*` routes
+  - Unauthenticated requests blocked by SWA with 401 redirect to Azure AD login
+  - Azure Functions trust SWA authentication; no additional function keys required
+- **Configuration**: Sensitive data (API keys, credentials) stored in Azure App Settings; use Azure Key Vault references in production
+- **Data Handling**: Report payloads contain project analysis data only; no raw credentials transmitted
 
 ## Extensibility
 

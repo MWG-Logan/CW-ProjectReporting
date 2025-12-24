@@ -4,10 +4,11 @@ A comprehensive project reporting solution that integrates with ConnectWise Mana
 
 ## Overview
 
-This solution consists of two main projects:
+This solution consists of three main projects:
 
 1. **Bezalu.ProjectReporting.API** - Azure Functions backend API that generates project completion reports
-2. **Bezalu.ProjectReporting.Web** - Blazor WebAssembly frontend (not yet implemented)
+2. **Bezalu.ProjectReporting.Web** - Blazor WebAssembly frontend for interactive report viewing and PDF export
+3. **Bezalu.ProjectReporting.Shared** - Shared DTOs for consistent contracts between API and frontend
 
 ## Features
 
@@ -90,8 +91,11 @@ Generates a comprehensive project completion report for the specified project ID
 
 ### Frontend (Web)
 
-- **Blazor WebAssembly** (to be implemented)
-- Will consume the API to display and generate PDF reports
+- **Blazor WebAssembly** with Fluent UI components
+- Interactive report visualization with tabs for phases and tickets
+- AI-generated summary rendered as Markdown using Markdig
+- PDF export functionality (posts existing report to API to avoid regeneration)
+- Integrated with Azure Static Web Apps for deployment and authentication
 
 ## Project Structure
 
@@ -106,16 +110,34 @@ CW-ProjectReporting/
 │   ├── host.json               # Azure Functions host configuration
 │   ├── local.settings.json     # Local development settings (not in git)
 │   └── README.md               # Detailed API documentation
-└── Bezalu.ProjectReporting.Web/
-    └── (Blazor WebAssembly project - to be implemented)
+├── Bezalu.ProjectReporting.Web/
+│   ├── Pages/                   # Blazor pages (Home.razor)
+│   ├── Layout/                  # Layout components
+│   ├── wwwroot/                 # Static assets and JS helpers
+│   ├── staticwebapp.config.json # Azure Static Web Apps configuration
+│   └── Program.cs               # Blazor WebAssembly startup
+└── Bezalu.ProjectReporting.Shared/
+    └── DTOs/                    # Shared data transfer objects
 ```
 
 ## Security
 
-- API keys and credentials stored in configuration (use Azure Key Vault in production)
-- `local.settings.json` excluded from source control
-- Function-level authorization required for API endpoints
-- No vulnerabilities detected by CodeQL security scanning
+- **Authentication**: Azure Static Web Apps with Azure AD (Entra ID) integration
+  - API endpoints use `AuthorizationLevel.Anonymous` at the Function level
+  - Authentication enforced by Static Web Apps configuration - requires `authenticated` role for `/api/*` routes
+  - Unauthenticated requests receive 401 and redirect to Azure AD login
+- **Configuration**: API keys and credentials stored in Azure App Settings (use Azure Key Vault in production)
+- **Source Control**: `local.settings.json` excluded from source control
+- **Scanning**: No vulnerabilities detected by CodeQL security scanning
+
+### Authentication Flow
+
+1. User accesses the Blazor WebAssembly app hosted on Azure Static Web Apps
+2. Static Web Apps enforces authentication via Azure AD (configured in `staticwebapp.config.json`)
+3. Authenticated users receive session cookies from SWA
+4. API requests include SWA authentication cookies automatically
+5. SWA validates authentication before forwarding requests to Azure Functions
+6. Azure Functions trust the SWA authentication layer (no additional function-level auth required)
 
 ## Development Notes
 
@@ -126,12 +148,13 @@ CW-ProjectReporting/
 
 ## Future Enhancements
 
-- Implement Blazor frontend for report visualization
-- Add PDF generation capability
-- Implement additional report types
-- Add caching for improved performance
+- Add visual charts for timeline and budget variance trends
+- Implement additional report types (financial analysis, resource utilization)
+- Add caching layer for ConnectWise API responses
 - Add unit and integration tests
 - Implement batch report generation
+- Add Excel export capability
+- Implement browser-side caching (localStorage) for recent reports
 
 ## Documentation
 
