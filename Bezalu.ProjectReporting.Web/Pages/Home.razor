@@ -76,7 +76,7 @@ else
         </p>
         <p><b>Manager:</b> @Report.Summary?.Manager | <b>Company:</b> @Report.Summary?.Company</p>
         <p><b>Timeline:</b> @Report.Timeline?.PlannedDays d planned / @Report.Timeline?.TotalDays d actual (Var: @Report.Timeline?.VarianceDays)</p>
-        <p><b>Budget:</b> @Report.Budget?.EstimatedHours h est / @Report.Budget?.ActualHours h actual (Var: @Report.Budget?.VarianceHours)</p>
+        <p><b>Budget:</b> @Report.Budget?.BudgetHours h budget / @Report.Budget?.ActualHours h actual (Var: @Report.Budget?.VarianceHours)</p>
 
         @if (!string.IsNullOrWhiteSpace(Report.AiGeneratedSummary))
         {
@@ -99,7 +99,7 @@ else
                     <FluentDataGrid Items="@Report.Phases.AsQueryable()" GenerateFooter="false">
                         <PropertyColumn Property="@(p => p.PhaseName)" Title="Name" />
                         <PropertyColumn Property="@(p => p.Status)" Title="Status" />
-                        <PropertyColumn Property="@(p => p.EstimatedHours)" Title="Est Hrs" />
+                        <PropertyColumn Property="@(p => p.BudgetHours)" Title="Budget Hrs" />
                         <PropertyColumn Property="@(p => p.ActualHours)" Title="Actual Hrs" />
                     </FluentDataGrid>
                 }
@@ -115,7 +115,7 @@ else
                         <PropertyColumn Property="@(t => t.TicketNumber)" Title="Number" />
                         <PropertyColumn Property="@(t => t.Summary)" Title="Summary" />
                         <PropertyColumn Property="@(t => t.Status)" Title="Status" />
-                        <PropertyColumn Property="@(t => t.EstimatedHours)" Title="Est Hrs" />
+                        <PropertyColumn Property="@(t => t.BudgetHours)" Title="Budget Hrs" />
                         <PropertyColumn Property="@(t => t.ActualHours)" Title="Actual Hrs" />
                     </FluentDataGrid>
                 }

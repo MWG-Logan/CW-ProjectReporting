@@ -172,7 +172,7 @@ public class ReportFunction(
             c.Column(col =>
             {
                 col.Item().Text("Budget Analysis").FontSize(14).Bold();
-                col.Item().Text($"Estimated Hours: {b?.EstimatedHours}").FontSize(10);
+                col.Item().Text($"Budget Hours: {b?.BudgetHours}").FontSize(10);
                 col.Item().Text($"Actual Hours: {b?.ActualHours}").FontSize(10);
                 col.Item().Text($"Variance Hours: {b?.VarianceHours}").FontSize(10);
                 col.Item().Text($"Budget Adherence: {b?.BudgetAdherence}").FontSize(10);
@@ -207,7 +207,7 @@ public class ReportFunction(
                         if (phase is { ActualStart: not null, ActualEnd: not null })
                             inner.Item().Text($"Actual: {phase.ActualStart:yyyy-MM-dd} > {phase.ActualEnd:yyyy-MM-dd}")
                                 .FontSize(9);
-                        inner.Item().Text($"Hours est/actual: {phase.EstimatedHours}/{phase.ActualHours}").FontSize(9);
+                        inner.Item().Text($"Hours budget/actual: {phase.BudgetHours}/{phase.ActualHours}").FontSize(9);
                     });
             });
         };
@@ -226,7 +226,7 @@ public class ReportFunction(
                     {
                         inner.Item().Text($"#{ticket.TicketNumber} {ticket.Summary} ({ticket.Status})").SemiBold();
                         inner.Item().Text($"Type: {ticket.Type}/{ticket.SubType}").FontSize(9);
-                        inner.Item().Text($"Hours est/actual: {ticket.EstimatedHours}/{ticket.ActualHours}")
+                        inner.Item().Text($"Hours budget/actual: {ticket.BudgetHours}/{ticket.ActualHours}")
                             .FontSize(9);
                         if (ticket.ClosedDate != null)
                             inner.Item().Text($"Closed: {ticket.ClosedDate:yyyy-MM-dd}").FontSize(9);

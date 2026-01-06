@@ -29,7 +29,7 @@
  "schedulePerformance": "121.6%"
  },
  "budget": {
- "estimatedHours":500.0,
+ "budgetHours":500.0,
  "actualHours":550.0,
  "varianceHours":50.0,
  "estimatedCost":0,
@@ -45,7 +45,7 @@
  "status": "Complete",
  "actualStart": "2024-01-01T00:00:00Z",
  "actualEnd": "2024-01-05T00:00:00Z",
- "estimatedHours":40.0,
+ "budgetHours":40.0,
  "actualHours":42.5,
  "notes": ["Initial kickoff done"],
  "summary": null
@@ -59,7 +59,7 @@
  "status": "Closed",
  "type": "Development",
  "subType": "Enhancement",
- "estimatedHours":16.0,
+ "budgetHours":16.0,
  "actualHours":18.25,
  "notes": ["Reviewed by QA", "Minor fixes"]
  }

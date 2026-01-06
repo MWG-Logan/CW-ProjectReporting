@@ -10,6 +10,7 @@ public class CWProject
     public DateTime? EstimatedStart { get; set; }
     public DateTime? EstimatedEnd { get; set; }
     public decimal? EstimatedHours { get; set; }
+    public decimal? BudgetHours { get; set; }
     public decimal? ActualHours { get; set; }
     public CWReference? Manager { get; set; }
     public CWReference? Company { get; set; }
@@ -32,6 +33,7 @@ public class CWTicket
     public CWReference? Type { get; set; }
     public CWReference? SubType { get; set; }
     public decimal? EstimatedHours { get; set; }
+    public decimal? BudgetHours { get; set; }
     public decimal? ActualHours { get; set; }
     public DateTime? ClosedDate { get; set; }
     public CWReference? AssignedTo { get; set; }
@@ -53,6 +55,7 @@ public class CWPhase
     public DateTime? ActualStart { get; set; }
     public DateTime? ActualEnd { get; set; }
     public decimal? EstimatedHours { get; set; }
+    public decimal? BudgetHours { get; set; }
     public decimal? ActualHours { get; set; }
 }
 

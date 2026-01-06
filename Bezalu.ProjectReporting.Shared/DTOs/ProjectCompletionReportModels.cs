@@ -49,7 +49,7 @@ public class TimelineAnalysis
 
 public class BudgetAnalysis
 {
- public decimal EstimatedHours { get; set; }
+ public decimal BudgetHours { get; set; }
  public decimal ActualHours { get; set; }
  public decimal VarianceHours { get; set; }
  public decimal EstimatedCost { get; set; }
@@ -66,7 +66,7 @@ public class PhaseDetail
  public string? Status { get; set; }
  public DateTime? ActualStart { get; set; }
  public DateTime? ActualEnd { get; set; }
- public decimal EstimatedHours { get; set; }
+ public decimal BudgetHours { get; set; }
  public decimal ActualHours { get; set; }
  public List<string>? Notes { get; set; }
  public string? Summary { get; set; }
@@ -80,7 +80,7 @@ public class TicketSummary
  public string? Status { get; set; }
  public string? Type { get; set; }
  public string? SubType { get; set; }
- public decimal EstimatedHours { get; set; }
+ public decimal BudgetHours { get; set; }
  public decimal ActualHours { get; set; }
  public List<string>? Notes { get; set; }
  public DateTime? ClosedDate { get; set; }

@@ -131,20 +131,20 @@ public class ProjectReportingService(
             };
         }
 
-        var estimatedHours = project.EstimatedHours ?? 0;
+        var budgetHours = project.BudgetHours ?? 0;
         var actualHours = project.ActualHours ?? 0;
-        var hoursVariance = actualHours - estimatedHours;
+        var hoursVariance = actualHours - budgetHours;
 
         report.Budget = new BudgetAnalysis
         {
-            EstimatedHours = estimatedHours,
+            BudgetHours = budgetHours,
             ActualHours = actualHours,
             VarianceHours = hoursVariance,
             EstimatedCost = 0,
             ActualCost = 0,
             VarianceCost = 0,
-            BudgetAdherence = hoursVariance <= 0 ? "Under Budget" : hoursVariance <= estimatedHours * 0.1m ? "Slightly Over" : "Over Budget",
-            CostPerformance = estimatedHours > 0 ? $"{(double)(actualHours / estimatedHours) * 100:F1}%" : "N/A"
+            BudgetAdherence = hoursVariance <= 0 ? "Under Budget" : hoursVariance <= budgetHours * 0.1m ? "Slightly Over" : "Over Budget",
+            CostPerformance = budgetHours > 0 ? $"{(double)(actualHours / budgetHours) * 100:F1}%" : "N/A"
         };
 
         report.Phases = phases.Select(phase => new PhaseDetail
@@ -154,7 +154,7 @@ public class ProjectReportingService(
             Status = phase.Status?.Name,
             ActualStart = phase.ActualStart,
             ActualEnd = phase.ActualEnd,
-            EstimatedHours = phase.EstimatedHours ?? 0,
+            BudgetHours = phase.BudgetHours ?? 0,
             ActualHours = phase.ActualHours ?? 0,
             Notes = new List<string>()
         }).ToList();
@@ -167,7 +167,7 @@ public class ProjectReportingService(
             Status = ticket.Status?.Name,
             Type = ticket.Type?.Name,
             SubType = ticket.SubType?.Name,
-            EstimatedHours = ticket.EstimatedHours ?? 0,
+            BudgetHours = ticket.BudgetHours ?? 0,
             ActualHours = ticket.ActualHours ?? 0,
             Notes = ticketNotes.TryGetValue(ticket.Id ?? 0, out var notes)
                 ? notes.OrderBy(n => n.DateCreated).Select(n => n.Text ?? "").ToList()
@@ -205,7 +205,7 @@ public class ProjectReportingService(
         sb.AppendLine("BUDGET:");
         if (report.Budget != null)
         {
-            sb.AppendLine($"- Estimated: {report.Budget.EstimatedHours} hours");
+            sb.AppendLine($"- Budget: {report.Budget.BudgetHours} hours");
             sb.AppendLine($"- Actual: {report.Budget.ActualHours} hours");
             sb.AppendLine($"- Variance: {report.Budget.VarianceHours} hours ({report.Budget.BudgetAdherence})");
         }
@@ -223,7 +223,7 @@ public class ProjectReportingService(
         sb.AppendLine($"PHASES ({report.Phases?.Count ?? 0}):");
         foreach (var phase in report.Phases ?? new List<PhaseDetail>())
         {
-            sb.AppendLine($"- {phase.PhaseName}: {phase.Status}; Hours est/actual {phase.EstimatedHours}/{phase.ActualHours}");
+            sb.AppendLine($"- {phase.PhaseName}: {phase.Status}; Hours budget/actual {phase.BudgetHours}/{phase.ActualHours}");
         }
         sb.AppendLine();
 
@@ -231,7 +231,7 @@ public class ProjectReportingService(
         sb.AppendLine($"TICKETS ({report.Tickets?.Count ?? 0}):");
         foreach (var ticket in report.Tickets ?? new List<TicketSummary>())
         {
-            sb.AppendLine($"- Ticket #{ticket.TicketNumber} {ticket.Summary} (Status: {ticket.Status}, Type: {ticket.Type}/{ticket.SubType}, Hours est/actual {ticket.EstimatedHours}/{ticket.ActualHours})");
+            sb.AppendLine($"- Ticket #{ticket.TicketNumber} {ticket.Summary} (Status: {ticket.Status}, Type: {ticket.Type}/{ticket.SubType}, Hours budget/actual {ticket.BudgetHours}/{ticket.ActualHours})");
             if (ticketNotes.TryGetValue(ticket.TicketId, out var notes) && notes.Any())
             {
                 var limited = notes.OrderBy(n => n.DateCreated).ToList(); // cap to 20 per ticket
