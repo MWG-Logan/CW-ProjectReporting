@@ -6,7 +6,7 @@
     },
     {
       "route": "/*",
-      "allowedRoles": ["authenticated"]
+      "allowedRoles": ["editor"]
     }
   ],
   "navigationFallback": {
