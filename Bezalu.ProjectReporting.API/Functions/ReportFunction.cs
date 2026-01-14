@@ -189,7 +189,7 @@ public class ReportFunction(
             c.Column(col =>
             {
                 col.Item().Text("AI Generated Summary").FontSize(14).Bold();
-                col.Item().Markdown(report.AiGeneratedSummary ?? string.Empty);
+                col.Item().DefaultTextStyle(x => x.FontSize(10)).Markdown(report.AiGeneratedSummary ?? string.Empty);
             });
         };
     }
