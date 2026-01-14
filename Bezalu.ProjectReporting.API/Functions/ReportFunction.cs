@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using QuestPDF;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
+using QuestPDF.Markdown;
 
 namespace Bezalu.ProjectReporting.API.Functions;
 
@@ -188,7 +189,7 @@ public class ReportFunction(
             c.Column(col =>
             {
                 col.Item().Text("AI Generated Summary").FontSize(14).Bold();
-                col.Item().Text(report.AiGeneratedSummary ?? string.Empty).FontSize(10);
+                col.Item().Markdown(report.AiGeneratedSummary ?? string.Empty);
             });
         };
     }

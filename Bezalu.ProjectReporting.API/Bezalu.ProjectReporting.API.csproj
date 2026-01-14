@@ -19,6 +19,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
     <PackageReference Include="QuestPDF" Version="2025.12.1" />
+    <PackageReference Include="QuestPDF.Markdown" Version="1.45.0" />
   </ItemGroup>
 
   <ItemGroup>
