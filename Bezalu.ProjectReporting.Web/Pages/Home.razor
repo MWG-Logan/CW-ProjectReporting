@@ -83,7 +83,7 @@ else
             <FluentAccordion>
                 <FluentAccordionItem Heading="AI Summary">
                     <FluentIcon Value="@(new Icons.Regular.Size20.Globe())" Color="Color.Neutral" Slot="start" />
-                    <div>@(new MarkupString(AiSummaryHtml))</div>
+                    <div class="markdown-content">@(new MarkupString(AiSummaryHtml))</div>
                 </FluentAccordionItem>
             </FluentAccordion>
         }
@@ -125,6 +125,11 @@ else
 }
 
 @code {
+    static readonly MarkdownPipeline MdPipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions() // enables tables, pipe tables
+        .UseSoftlineBreakAsHardlineBreak()
+        .Build();
+
     List<ProjectListItem>? Projects;
     ProjectCompletionReportResponse? Report;
     bool IsLoadingProjects;
@@ -134,7 +139,7 @@ else
     bool ShowLoginPrompt;
     string LoginPromptText = "Please sign in to continue.";
     string? ErrorMessage;
-    string AiSummaryHtml => Report?.AiGeneratedSummary is null ? string.Empty : Markdown.ToHtml(Report.AiGeneratedSummary);
+    string AiSummaryHtml => Report?.AiGeneratedSummary is null ? string.Empty : Markdown.ToHtml(Report.AiGeneratedSummary, MdPipeline);
 
     protected override async Task OnInitializedAsync()
     {

@@ -185,3 +185,29 @@ code {
         right: unset;
     }
 }
+
+.markdown-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.5rem 0 1rem 0;
+}
+
+.markdown-content th,
+.markdown-content td {
+    border: 1px solid #d2d6dc;
+    padding: 4px 6px;
+    text-align: left;
+}
+
+.markdown-content th {
+    background: #f6f7f9;
+    font-weight: 600;
+}
+
+.markdown-content tbody tr:nth-child(odd) {
+    background: #fafafa;
+}
+
+.markdown-content p {
+    margin: 0.25rem 0 0.5rem;
+}
