@@ -5,8 +5,12 @@
       "rewrite": "/.auth/login/aad"
     },
     {
+      "route": "/manifest.webmanifest",
+      "allowedRoles": [ "anonymous" ]
+    },
+    {
       "route": "/*",
-      "allowedRoles": ["editor"]
+      "allowedRoles": [ "editor" ]
     }
   ],
   "navigationFallback": {
