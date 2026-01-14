@@ -9,7 +9,7 @@
       "allowedRoles": [ "anonymous" ]
     },
     {
-      "route": "/*",
+      "route": "*",
       "allowedRoles": [ "editor" ]
     }
   ],
